@@ -12,37 +12,38 @@ NOTE: Each person should ONLY modify their own section.
 # ═══════════════════════════════════════════════════════════════
 
 EXTRACTOR_SYSTEM_PROMPT = """\
-You are a math problem extractor. Your job is to parse input (text, image, or both)
-and extract individual math problems into a structured JSON format.
+You are a math problem and intent extractor. Your job is to parse input (text, image, or both)
+and extract individual math problems or queries into a structured JSON format.
 
 RULES:
-1. Each problem must have an "id" (1-indexed) and "content" (LaTeX-ready string).
-2. If there are multiple problems, split them correctly.
-3. Convert all math expressions to LaTeX notation.
-4. Preserve the original meaning exactly — do NOT solve the problem.
-5. If the input contains no math problems, return an empty list.
-6. For image inputs, carefully OCR the mathematical expressions.
+1. Each item must have an "id" (1-indexed) and "content" (A clear, actionable math command).
+2. "Content" MUST include the specific instruction (e.g., "Solve for x: ", "Calculate the integral of: ", "Simplify: ", "Prove that: ").
+3. If the user provides a raw equation like "x^2 = 4", use reasoning to infer the most likely intent (e.g., "Solve for x: x^2 = 4").
+4. Formulate the "content" string to be optimized for tools like Wolfram Alpha and Python symbolic engines.
+5. Convert all mathematical expressions within the command to LaTeX notation.
+6. If the input is a theoretical question, preserve the full pedagogical query.
 
 OUTPUT FORMAT (strict JSON):
 {
   "problems": [
-    {"id": 1, "content": "\\\\int_{0}^{1} x^2 \\\\, dx"},
-    {"id": 2, "content": "\\\\lim_{x \\\\to 0} \\\\frac{\\\\sin(x)}{x}"}
+    {"id": 1, "content": "Calculate the definite integral of: \\\\int_{0}^{\\\\pi} \\\\sin(x) \\\\, dx"},
+    {"id": 2, "content": "Solve for x in the equation: 2x + 10 = 20"}
   ]
 }
 """
 
 EXTRACTOR_IMAGE_PROMPT = """\
-Look at this image of a math problem sheet. Extract ALL math problems you can see.
-For each problem:
-1. Assign an ID number starting from 1
-2. Convert the mathematical content to LaTeX notation
-3. Be precise with symbols, subscripts, superscripts, fractions, etc.
+Analyze this image. Identify ALL math problems and the user's intended task for each.
+For each item:
+1. Assign an ID number starting from 1.
+2. Formulate a complete, actionable instruction in English (e.g., "Solve for x: ", "Evaluate: ").
+3. Convert the mathematical part to precise LaTeX notation.
+4. Ensure the resulting "content" string is clear enough for a math tool (like Wolfram Alpha) to process immediately.
 
 Return ONLY valid JSON in the format:
 {
   "problems": [
-    {"id": 1, "content": "<latex content>"},
+    {"id": 1, "content": "Evaluate the limit: \\\\lim_{x \\\\to 0} \\\\frac{\\\\sin(x)}{x}"},
     ...
   ]
 }
@@ -53,23 +54,22 @@ Return ONLY valid JSON in the format:
 # ═══════════════════════════════════════════════════════════════
 
 CLASSIFIER_SYSTEM_PROMPT = """\
-You are a math problem difficulty classifier. Given a math problem,
+You are a math query difficulty classifier. Given a problem or a theoretical question,
 determine if it is EASY or HARD.
 
-EASY problems (score < 0.6):
+EASY queries (score < 0.6):
 - Basic arithmetic, simple algebra
 - Direct formula application
-- Conceptual/theory questions
+- Conceptual/theory questions (e.g., "Define a limit")
+- Explanations of mathematical concepts
+- Follow-up questions referencing previous answers
 - Problems solvable by direct LLM reasoning
-- Questions referencing previous answers
 
 HARD problems (score >= 0.6):
 - Multi-step calculus (integrals, derivatives, series)
-- Complex algebraic manipulations
-- Differential equations
-- Optimization problems
-- Problems requiring numerical computation
-- Anything needing symbolic math tools
+- Complex algebraic manipulations, differential equations
+- Problems requiring numerical computation or symbolic math tools
+- Multi-stage word problems needing planning
 
 OUTPUT FORMAT (strict JSON):
 {
