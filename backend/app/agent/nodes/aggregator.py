@@ -5,6 +5,7 @@ Person 3 owns this file.
 Collects all tool results and produces final formatted solutions.
 """
 
+import json
 import time
 from typing import Any, Dict, List
 
@@ -94,13 +95,15 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     ws_messages = list(state.get("ws_messages", []))
 
     llm = get_aggregator_llm()
+    final_results: List[Dict[str, Any]] = []
+    total_latency = 0
 
     # ── Handle Case: No new problems (Follow-up or Clarification) ──
     if not problems:
         logger.info("[Aggregator] No new problems, treating as follow-up/clarification.")
         
         # Build prompt for pedagogical follow-up
-        history = state.get("chat_history", [])[-8:] # Keep last 4 turns
+        history = state.get("chat_history", [])[-8:]
         history_str = json.dumps(history, indent=2, ensure_ascii=False) if history else "None"
         
         followup_prompt = (
@@ -126,7 +129,15 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                     "steps": parsed.get("steps", []),
                     "final_answer": parsed.get("final_answer", ""),
                     "confidence": 1.0,
-                    "tool_trace": {"route": "clarification", "solve_reason": "Follow-up/Clarification based on history"}
+                    "tool_trace": {
+                        "route": "clarification",
+                        "solve_reason": "Follow-up/Clarification based on history",
+                        "tools_used": [],
+                        "attempts": 1,
+                        "cache_hit": False,
+                        "latency_ms": 0,
+                        "errors": [],
+                    },
                 })
         except Exception as e:
             logger.error(f"[Aggregator] Failed to process follow-up: {e}")
@@ -139,12 +150,65 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 "steps": [{"step": 1, "description": err_msg, "latex": ""}],
                 "final_answer": err_msg,
                 "confidence": 0.0,
-                "error": "follow_up_failed"
+                "error": "follow_up_failed",
+                "tool_trace": {
+                    "route": "clarification",
+                    "solve_reason": "Fallback clarification",
+                    "tools_used": [],
+                    "attempts": 1,
+                    "cache_hit": False,
+                    "latency_ms": 0,
+                    "errors": [str(e)],
+                },
             })
 
+        if not final_results:
+            fallback_msg = state.get("extraction_error") or "Xin lỗi, hiện tại hệ thống đang bận. Bạn thử lại sau ít phút nhé."
+            final_results.append({
+                "problem_id": 0,
+                "original": state.get("raw_text", ""),
+                "difficulty": "unknown",
+                "steps": [{"step": 1, "description": fallback_msg, "latex": ""}],
+                "final_answer": fallback_msg,
+                "confidence": 0.0,
+                "error": "follow_up_empty",
+                "tool_trace": {
+                    "route": "clarification",
+                    "solve_reason": "Empty follow-up fallback",
+                    "tools_used": [],
+                    "attempts": 1,
+                    "cache_hit": False,
+                    "latency_ms": 0,
+                    "errors": [],
+                },
+            })
 
-    final_results: List[Dict[str, Any]] = []
-    total_latency = 0
+        solved_count = sum(1 for r in final_results if not r.get("error"))
+        failed_count = sum(1 for r in final_results if r.get("error"))
+        status = "completed" if solved_count > 0 else "failed"
+
+        ws_messages.append({
+            "type": "all_complete",
+            "data": {
+                "status": status,
+                "total": len(final_results),
+                "solved": solved_count,
+                "failed": failed_count,
+                "cached": 0,
+            },
+        })
+
+        logger.info(
+            f"[Aggregator] Follow-up done: {solved_count} solved, {failed_count} failed"
+        )
+
+        return {
+            "final_results": final_results,
+            "status": status,
+            "total_latency_ms": 0,
+            "cached_count": 0,
+            "ws_messages": ws_messages,
+        }
 
     for problem in problems:
         pid = problem["id"]

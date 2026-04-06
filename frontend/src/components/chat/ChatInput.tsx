@@ -15,6 +15,7 @@ export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) =
   const setError = useChatStore((s) => s.setError);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingPreviewsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (initialText && initialText.trim()) {
@@ -32,11 +33,20 @@ export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) =
     }
   }, [isLoading, initialText]);
 
+  // Cleanup previews still pending in input when component unmounts.
+  useEffect(() => {
+    return () => {
+      pendingPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+      pendingPreviewsRef.current = [];
+    };
+  }, []);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.slice(0, 3 - images.length).map((f) => ({
       file: f,
       preview: URL.createObjectURL(f),
     }));
+    pendingPreviewsRef.current.push(...newImages.map((img) => img.preview));
     setImages((prev) => [...prev, ...newImages]);
   }, [images.length]);
 
@@ -50,7 +60,11 @@ export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) =
 
   const removeImage = (idx: number) => {
     setImages((prev) => {
-      URL.revokeObjectURL(prev[idx].preview);
+      const preview = prev[idx]?.preview;
+      if (preview) {
+        URL.revokeObjectURL(preview);
+        pendingPreviewsRef.current = pendingPreviewsRef.current.filter((p) => p !== preview);
+      }
       return prev.filter((_, i) => i !== idx);
     });
   };
@@ -80,7 +94,8 @@ export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) =
 
     setLoading(true);
     setText('');
-    images.forEach((img) => URL.revokeObjectURL(img.preview));
+    // Message now owns previews, so they are no longer pending input previews.
+    pendingPreviewsRef.current = [];
     setImages([]);
 
     try {

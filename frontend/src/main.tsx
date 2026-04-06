@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Toaster } from 'react-hot-toast'
+import 'katex/dist/katex.min.css'
 import App from './App'
 import './index.css'
 

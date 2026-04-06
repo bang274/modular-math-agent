@@ -17,18 +17,25 @@ export const LaTeXRenderer: React.FC<Props> = ({
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
 
-  // Strip dollar signs if present
-  const cleanLatex = latex
-    .replace(/^\$+|\$+$/g, '')
-    .replace(/^\$\$|\$\$$/g, '')
-    .trim();
+  // Extract first delimited math block if present: "text $...$" -> "..."
+  const extractMath = (input: string): string => {
+    const display = input.match(/\$\$([\s\S]+?)\$\$/);
+    if (display?.[1]) return display[1].trim();
+
+    const inline = input.match(/\$([^$]+)\$/);
+    if (inline?.[1]) return inline[1].trim();
+
+    return input.replace(/^\$+|\$+$/g, '').trim();
+  };
+
+  const cleanLatex = extractMath(latex || '');
 
   useEffect(() => {
     if (containerRef.current && cleanLatex) {
       try {
         katex.render(cleanLatex, containerRef.current, {
           displayMode,
-          throwOnError: false,
+          throwOnError: true,
           trust: true,
           strict: false,
         });

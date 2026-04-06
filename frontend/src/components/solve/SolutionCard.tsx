@@ -14,9 +14,23 @@ interface Props {
 // Helper to decide if a string should be rendered with LaTeX
 const isLikelyMath = (text: string): boolean => {
   if (!text) return false;
-  // Look for common LaTeX indicators or mathematical notation
-  const mathIndicators = ['\\', '^', '_', '{', '}', '$', '=', '<', '>', '+', '-', '*', '/'];
-  return mathIndicators.some(indicator => text.includes(indicator));
+  // Avoid false positives from normal prose; require stronger math signals.
+  return (
+    text.includes('$')
+    || /\\[a-zA-Z]+/.test(text)
+    || /[=^_]/.test(text)
+    || /\d+\s*[-+*/]\s*\d+/.test(text)
+    || /[a-zA-Z]\s*[-+*/]\s*[a-zA-Z0-9]/.test(text)
+  );
+};
+
+const extractDelimitedMath = (text: string): string => {
+  if (!text) return '';
+  const display = text.match(/\$\$([\s\S]+?)\$\$/);
+  if (display?.[1]) return display[1].trim();
+  const inline = text.match(/\$([^$]+)\$/);
+  if (inline?.[1]) return inline[1].trim();
+  return text;
 };
 
 export const SolutionCard: React.FC<Props> = ({ result }) => {
@@ -37,6 +51,8 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
   const route = result.tool_trace?.route || 'unknown';
   const cacheHit = result.tool_trace?.cache_hit || false;
   const latency = result.tool_trace?.latency_ms || 0;
+  const normalizedOriginal = extractDelimitedMath(result.original);
+  const normalizedAnswer = extractDelimitedMath(result.final_answer);
 
   const confidenceColor = result.confidence >= 0.8 ? '#34d399' :
     result.confidence >= 0.5 ? '#fbbf24' : '#f87171';
@@ -64,8 +80,8 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
         <div className="solution-card__body">
           <div className="solution-card__problem">
             <span className="label">ĐỀ BÀI:</span>
-            {isLikelyMath(result.original) ? (
-              <LaTeXRenderer latex={result.original} displayMode />
+            {isLikelyMath(normalizedOriginal) ? (
+              <LaTeXRenderer latex={normalizedOriginal} displayMode />
             ) : (
               <div className="problem-text">{result.original}</div>
             )}
@@ -90,8 +106,8 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
             <div className="solution-card__answer">
               <span className="label">ĐÁP ÁN:</span>
               <div className="answer-box">
-                {isLikelyMath(result.final_answer) ? (
-                  <LaTeXRenderer latex={result.final_answer} displayMode />
+                {isLikelyMath(normalizedAnswer) ? (
+                  <LaTeXRenderer latex={normalizedAnswer} displayMode />
                 ) : (
                   <span className="answer-text">{result.final_answer}</span>
                 )}
