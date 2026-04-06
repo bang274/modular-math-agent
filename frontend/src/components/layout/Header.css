@@ -2,11 +2,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  height: 64px;
-  background: rgba(15, 15, 25, 0.8);
+  padding: 0 1.5rem;
+  height: var(--header-height);
+  background: rgba(10, 22, 40, 0.85);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -18,25 +18,39 @@
   gap: 0.75rem;
 }
 
-.header-logo {
-  font-size: 1.5rem;
+.header-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.header-brand-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .header-title {
-  font-size: 1.25rem;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  background: linear-gradient(135deg, var(--blue-300), var(--orange-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
 }
 
 .header-badge {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   padding: 2px 8px;
-  border-radius: 12px;
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
+  border-radius: var(--radius-full);
+  background: var(--info-bg);
+  color: var(--blue-400);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -49,20 +63,30 @@
 
 .nav-link {
   padding: 0.5rem 1rem;
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .nav-link:hover {
-  color: #fff;
+  color: var(--text-primary);
   background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link.active {
-  color: #a78bfa;
-  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .header-title {
+    font-size: 1rem;
+  }
 }

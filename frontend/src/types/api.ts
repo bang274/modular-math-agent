@@ -1,7 +1,5 @@
 /**
  * Shared TypeScript types — mirrors backend Pydantic schemas.
- * Person 6 owns this file.
- * IMPORTANT: Keep in sync with backend/app/models/
  */
 
 export type Difficulty = 'easy' | 'hard' | 'unknown';
@@ -31,6 +29,9 @@ export type WSMessageType =
   | 'all_complete'
   | 'error'
   | 'pong';
+
+export type MessageRole = 'user' | 'assistant';
+export type MessageStatus = 'pending' | 'processing' | 'success' | 'error';
 
 export interface Problem {
   id: number;
@@ -102,4 +103,29 @@ export interface HealthResponse {
 export interface WSMessage {
   type: WSMessageType;
   data: Record<string, unknown>;
+}
+
+export interface ChatImage {
+  file: File;
+  preview: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  images?: ChatImage[];
+  timestamp: number;
+  status: MessageStatus;
+  results?: ProblemResult[];
+  sessionId?: string;
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+  sessionId?: string;
 }
