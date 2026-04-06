@@ -22,7 +22,7 @@ def parse_json_response(text: str) -> Optional[Dict[str, Any]]:
 
     # Try direct parse first
     try:
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except json.JSONDecodeError:
         pass
 
@@ -36,10 +36,17 @@ def parse_json_response(text: str) -> Optional[Dict[str, Any]]:
     for pattern in patterns:
         match = re.search(pattern, text, re.DOTALL)
         if match:
+            candidate = match.group(1) if "```" in pattern else match.group(0)
             try:
-                return json.loads(match.group(1) if "```" in pattern else match.group(0))
-            except (json.JSONDecodeError, IndexError):
-                continue
+                return json.loads(candidate, strict=False)
+            except json.JSONDecodeError:
+                # Fallback: Fix unescaped backslashes commonly found in LaTeX
+                # This replaces \ with \\ unless it is followed by a valid JSON escape char (", \, /, b, f, n, r, t)
+                fixed_candidate = re.sub(r'\\(?=[^"\\/bfnrt])', r'\\\\', candidate)
+                try:
+                    return json.loads(fixed_candidate, strict=False)
+                except json.JSONDecodeError:
+                    continue
 
     logger.warning(f"Failed to parse JSON from LLM response: {text[:200]}...")
     return None

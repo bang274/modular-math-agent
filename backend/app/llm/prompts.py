@@ -42,29 +42,29 @@ OUTPUT FORMAT (strict JSON):
 
 EXTRACTOR_SYSTEM_PROMPT = """\
 You are a math problem extractor with "Session Memory". Your job is to parse input 
-(text, image, or both) and extract individual math problems.
+(text, image, or both) and extract exactly ONE main math problem.
 
 CONTEXT-AWARE RULES:
 1. Review the provided CHAT HISTORY to resolve pronouns or references (e.g., "that equation", "it", "the previous result").
 2. If the user asks for a modification (e.g., "Change x to 5 in the last one"), generate a NEW complete problem string reflecting that change (e.g., "Solve 2x + 10 = 20 where x=5").
-3. If the input is a follow-up explanation request (e.g., "Explain step 2"), extract it as a "pedagogical_query".
+3. If the input contains multiple problems, extract ONLY the first or most prominent one. NEVER return more than one problem in the list.
 4. Always convert mathematical expressions to precise LaTeX.
 5. If the current input is empty but history exists, and the user is clearly referencing it, act on that context.
 
 OUTPUT FORMAT (strict JSON):
 {
   "problems": [
-    {"id": 1, "content": "The resolved math command here", "is_follow_up": true|false},
-    ...
+    {"id": 1, "content": "The resolved math command here", "is_follow_up": true|false}
   ]
 }
 """
 
 
 EXTRACTOR_IMAGE_PROMPT = """\
-Analyze this image. Identify ALL math problems and the user's intended task for each.
-For each item:
-1. Assign an ID number starting from 1.
+Analyze this image. Identify the PRIMARY math problem and the user's intended task. 
+If there are multiple problems, extract ONLY the first or most clearly visible one.
+
+1. Assign an ID number of 1.
 2. Formulate a complete, actionable instruction in English (e.g., "Solve for x: ", "Evaluate: ").
 3. Convert the mathematical part to precise LaTeX notation.
 4. Ensure the resulting "content" string is clear enough for a math tool (like Wolfram Alpha) to process immediately.
@@ -72,8 +72,7 @@ For each item:
 Return ONLY valid JSON in the format:
 {
   "problems": [
-    {"id": 1, "content": "Evaluate the limit: \\\\lim_{x \\\\to 0} \\\\frac{\\\\sin(x)}{x}"},
-    ...
+    {"id": 1, "content": "Evaluate the limit: \\lim_{x \\to 0} \\frac{\\sin(x)}{x}"}
   ]
 }
 """

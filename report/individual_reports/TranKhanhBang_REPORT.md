@@ -34,9 +34,13 @@ FE not displaying edges cases: The bug was fixed by implementing a "Fail-Convers
 ## III. Personal Insights
 *Reflect on the fundamental differences between LLM Chatbots vs ReAct Agents based on your experience coding them.*
 
-[Your reflection here]
+In terms of coding experiences, I have never code a LLM chatbots ever before, I only call api and use them directly. For ReAct Agents, however, I have a good time coding them today, involves using tools, implements features, work with teammates. I learnt a lot more while coding them, compares to LLM chatbots.
+
+In terms of fundamentals, chatbot only give suggestion, fix code, ... or in other words, give text outputs. For ReAct Agents, they have more power, actions. They call the nescessary tools and run them, feeding the results again automatically, making them perform much more faster and efficient
 
 ## IV. Future Improvements
 *Propose an idea for scaling this system to a production-level standard. What would you add next? (e.g., RAG memory, human-in-the-loop, parallel tool calling).*
 
-[Your proposal here]
+To make this system into a production level, I think a parallel tool calling feature to improve latency and human-in-the-loop to handles fallbacks. Right now, the pipeline primarily operates sequentially. However, complex mathematical queries could be processed much faster if the planner node asynchronously dispatched multiple tools at once (e.g., executing Python equations while simultaneously querying Wolfram Alpha) and the aggregator simply chose the fastest, most reliable output.
+
+Additionally, we should integrate a HITL layer: if the agent enters a persistent failure loop or encounters a problem it cannot solve after maximum retries, the system should pause the agent and dynamically escalate the chat to a live support tutor. Lastly, adding a **RAG (Retrieval-Augmented Generation) memory cache** to index previously solved, complex mathematical formulas would drastically cut LLM token costs and lower latency for frequently asked standard curriculum questions.

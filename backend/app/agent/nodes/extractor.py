@@ -25,7 +25,7 @@ def _parse_problems(parsed: Optional[Dict]) -> List[Dict[str, Any]]:
     if not parsed or "problems" not in parsed:
         return []
     result = []
-    for idx, p in enumerate(parsed["problems"], start=1):
+    for idx, p in enumerate(parsed["problems"][:1], start=1):
         content = p.get("content", "").strip()
         if content:
             result.append({"id": f"bai_{idx}", "content": content})
@@ -145,7 +145,7 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
             }
 
         problems = []
-        for idx, p in enumerate(parsed["problems"], start=1):
+        for idx, p in enumerate(parsed["problems"][:1], start=1):
             content = p.get("content", "").strip()
             if not content:
                 continue

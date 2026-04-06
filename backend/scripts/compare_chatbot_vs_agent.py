@@ -1,34 +1,49 @@
 """
 Master test script to compare Chatbot vs ReAct Agent.
 """
-import asyncio
-import time
 import sys
 import os
+import asyncio
+import time
 import uuid
 import warnings
 from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add backend dir for current imports
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(backend_dir)
 
 from app.llm.provider import get_default_llm
 from app.agent.graph import run_agent_pipeline
 
+# Import the newly created local chatbot baseline
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.append(script_dir)
+
+try:
+    from chatbot_baseline import Chatbot
+except ImportError as e:
+    print(f"Warning: Failed to import Chatbot from chatbot_baseline. Error: {e}")
+    Chatbot = None
+
 TEST_CASES = [
-    "I want to make an alloy that is 40% silver and 60% gold. I have 10 grams of silver. How much gold do I need?",
-    "Calculate the integral of x^2 * sin(x) dx.",
     "A train leaves city A at 60mph. 2 hours later another train leaves city A on a parallel track at 80mph. How long until the second train catches the first?",
-    "Find the roots of the polynomial x^5 - 5x^4 + 10x^3 - 10x^2 + 5x - 1 = 0.",
+    "I want to make an alloy that is 40% silver and 60% gold. I have 10 grams of silver. How much gold do I need?"
 ]
 
 async def run_chatbot(prompt: str):
-    llm = get_default_llm()
     start = time.time()
     try:
-        response = await llm.ainvoke(prompt)
-        content = response.content
+        if Chatbot is not None:
+            bot = Chatbot()
+            content = bot.chat(prompt)
+        else:
+            llm = get_default_llm()
+            response = await llm.ainvoke(prompt)
+            content = response.content
     except Exception as e:
         content = f"Error: {e}"
     latency = time.time() - start
@@ -61,7 +76,7 @@ async def main():
         print("\n  [1] Running Baseline Chatbot...")
         cb_res, cb_lat = await run_chatbot(test)
         print(f"  Latency: {cb_lat:.2f}s")
-        print(f"  Answer preview: {cb_res[:200]}...")
+        print(f"  Answer preview: {cb_res}...")
 
         print("\n  [2] Running ReAct Math Agent...")
         ag_res, ag_lat = await run_agent(test)
