@@ -66,7 +66,7 @@ def build_agent_graph() -> StateGraph:
                 {
                     "problem_id": 0,
                     "original": state.get("raw_text", ""),
-                    "difficulty": "none",
+                    "difficulty": "unknown",
                     "final_answer": guard_response,
                     "steps": [{"step": 1, "description": guard_response, "latex": ""}],
                     "confidence": 1.0,
@@ -115,9 +115,11 @@ def build_agent_graph() -> StateGraph:
         route_after_extraction,
         {
             "cache_check": "cache_check",
+            "aggregator": "aggregator",
             "error_end": "error_end",
         },
     )
+
 
 
     # After cache check → classifier or aggregator (if all cached)

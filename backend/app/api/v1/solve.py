@@ -31,7 +31,8 @@ async def solve_text(
     Runs the full agent pipeline:
     extract → cache check → classify → solve → aggregate → cache store
     """
-    session_id = str(uuid.uuid4())
+    # Use provided session_id or generate a new one
+    session_id = request.session_id or str(uuid.uuid4())
     logger.info(f"[API] POST /solve session={session_id}")
 
     try:
@@ -40,6 +41,7 @@ async def solve_text(
             text=request.text,
             session_id=session_id,
         )
+
 
         # Build response
         response = _build_response(session_id, final_state)

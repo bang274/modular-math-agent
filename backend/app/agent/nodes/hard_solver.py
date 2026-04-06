@@ -198,19 +198,27 @@ async def _solve_single_hard_problem(
     else:
         route = "failed"
 
+    # Compile the final reason for the chosen route (useful for user)
+    reason = "Solved by symbolic computation." if route == "wolfram" else \
+             "Solved via algorithmic sandbox." if route == "python_sandbox" else \
+             "Solved via knowledge retrieval." if route == "fallback_search" else \
+             f"Failed to solve. Errors: {'; '.join(errors)}"
+
     result = {
         "final_answer": final_output,
         "tools_used": tools_used,
         "tool_outputs": tool_outputs,
         "solve_route": route,
+        "solve_reason": reason,
         "solved": solved,
-        "confidence": 0.95 if "wolfram_alpha" in tools_used else
-                     0.80 if "python_executor" in tools_used else
+        "confidence": 0.98 if "wolfram_alpha" in tools_used else
+                     0.85 if "python_executor" in tools_used else
                      0.50 if "web_search" in tools_used else 0.0,
         "errors": errors,
         "latency_ms": latency,
         "error": None if solved else "All solving tiers failed",
     }
+
 
     messages_to_append.append({
         "type": "problem_solved" if solved else "error",
