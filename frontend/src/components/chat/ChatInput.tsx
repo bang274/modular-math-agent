@@ -5,7 +5,7 @@ import { useChatStore } from '../../store/chatStore';
 import type { ChatImage } from '../../types/api';
 import './ChatInput.css';
 
-export const ChatInput: React.FC = () => {
+export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<ChatImage[]>([]);
   const { solveFromText, solveFromUpload } = useSolve();
@@ -17,10 +17,20 @@ export const ChatInput: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!isLoading && textareaRef.current) {
+    if (initialText && initialText.trim()) {
+      setText(initialText);
+      // Focus textarea để user có thể edit hoặc send ngay
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }, [initialText]);
+
+  useEffect(() => {
+    if (!isLoading && textareaRef.current && !initialText) {
       textareaRef.current.focus();
     }
-  }, [isLoading]);
+  }, [isLoading, initialText]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.slice(0, 3 - images.length).map((f) => ({
