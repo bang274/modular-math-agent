@@ -95,8 +95,11 @@ async def cache_store_node(state: AgentState) -> Dict[str, Any]:
                 "final_answer": result.get("final_answer", ""),
                 "confidence": result.get("confidence", 0.0),
             }
-            await cache.set(problem["content"], cache_data)
-            stored += 1
+            cached_ok = await cache.set(problem["content"], cache_data)
+            if cached_ok:
+                stored += 1
+            else:
+                logger.warning(f"[Cache] Failed to store result for problem {pid}")
         except Exception as e:
             logger.warning(f"[Cache] Error storing result for problem {pid}: {e}")
 
