@@ -148,6 +148,7 @@ def _build_response(session_id: str, state: dict) -> SolveResponse:
     return SolveResponse(
         session_id=session_id,
         status=status,
+        ws_url=f"/api/v1/ws/{session_id}",
         results=results,
         total_problems=len(results),
         solved_count=solved,

@@ -36,9 +36,9 @@ class Settings(BaseSettings):
 
     # ── LLM (Groq) ──────────────────────────────────────────
     groq_api_key: str = ""
-    llm_model_reasoning: str = "PLACEHOLDER_REASONING_MODEL_ID"
-    llm_model_extraction: str = "PLACEHOLDER_EXTRACTION_MODEL_ID"
-    llm_model_classifier: str = "PLACEHOLDER_CLASSIFIER_MODEL_ID"
+    llm_model_reasoning: str = "llama-3.3-70b-versatile"
+    llm_model_extraction: str = "llama-3.1-8b-instant"
+    llm_model_classifier: str = "llama-3.1-8b-instant"
 
     # ── Wolfram Alpha ────────────────────────────────────────
     wolfram_alpha_app_id: str = ""
@@ -66,12 +66,35 @@ class Settings(BaseSettings):
     python_sandbox_timeout_seconds: int = 5
     python_sandbox_max_retries: int = 3
 
+    # ── Rate Limiting ────────────────────────────────────────
+    rate_limit_requests: int = 30
+    rate_limit_window_seconds: int = 60
+
+    # ── GZip Compression ─────────────────────────────────────
+    gzip_min_size: int = 500  # bytes — responses smaller than this skip compression
+
     # ── HuggingFace Spaces ───────────────────────────────────
     hf_space: bool = False
 
     @property
     def max_upload_size_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+    def validate_keys(self) -> List[str]:
+        """Check for missing API keys and return a list of warnings.
+
+        Called at startup so the team immediately sees what's missing.
+        """
+        warnings: List[str] = []
+        if not self.groq_api_key or self.groq_api_key.startswith("gsk_your"):
+            warnings.append("GROQ_API_KEY is missing — LLM calls will fail")
+        if not self.wolfram_alpha_app_id or "your_" in self.wolfram_alpha_app_id:
+            warnings.append("WOLFRAM_ALPHA_APP_ID is missing — Tier 1 tool disabled")
+        if not self.tavily_api_key or "your_" in self.tavily_api_key:
+            warnings.append("TAVILY_API_KEY is missing — Tier 3 search disabled")
+        if not self.langchain_api_key or "your_" in self.langchain_api_key:
+            warnings.append("LANGCHAIN_API_KEY is missing — LangSmith tracing disabled")
+        return warnings
 
 
 @lru_cache()

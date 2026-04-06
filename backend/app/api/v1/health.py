@@ -1,5 +1,5 @@
 """
-Health Check Endpoint.
+Health & Metrics Endpoints.
 
 Person 5 owns this file.
 """
@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from app.cache.redis_client import redis_manager
 from app.db.database import db_manager
 from app.models.response import HealthResponse
+from app.telemetry.metrics import metrics
 
 router = APIRouter()
 
@@ -24,3 +25,13 @@ async def health_check():
         redis_connected=redis_ok,
         db_connected=db_ok,
     )
+
+
+@router.get("/metrics")
+async def get_metrics():
+    """Get pipeline performance metrics.
+
+    Returns request counts, latency percentiles (p50/p95/p99),
+    tool usage breakdown, cache hit rates, and error rate.
+    """
+    return metrics.get_summary()

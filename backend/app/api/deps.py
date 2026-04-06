@@ -20,7 +20,12 @@ async def check_rate_limit(request: Request) -> None:
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please try again later.",
-            headers={"Retry-After": "60", "X-RateLimit-Remaining": str(remaining)},
+            headers={
+                "Retry-After": str(rate_limiter.window_seconds),
+                "X-RateLimit-Remaining": str(remaining),
+                "X-RateLimit-Limit": str(rate_limiter.max_requests),
+                "X-RateLimit-Window": str(rate_limiter.window_seconds),
+            },
         )
 
 
