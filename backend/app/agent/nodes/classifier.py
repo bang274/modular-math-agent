@@ -10,7 +10,8 @@ from typing import Any, Dict, List
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agent.state import AgentState
-from app.llm.provider import get_classifier_llm
+from app.llm.provider import get_planner_llm
+
 from app.llm.prompts import CLASSIFIER_SYSTEM_PROMPT
 from app.llm.parser import parse_json_response
 from app.telemetry.logger import logger
@@ -32,7 +33,8 @@ async def classifier_node(state: AgentState) -> Dict[str, Any]:
     if not problems:
         return {"easy_problems": [], "hard_problems": []}
 
-    llm = get_classifier_llm()
+    llm = get_planner_llm()
+
     easy_ids: List[int] = []
     hard_ids: List[int] = []
 

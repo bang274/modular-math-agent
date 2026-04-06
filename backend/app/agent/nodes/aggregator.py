@@ -11,7 +11,8 @@ from typing import Any, Dict, List
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agent.state import AgentState
-from app.llm.provider import get_reasoning_llm
+from app.llm.provider import get_aggregator_llm
+
 from app.llm.prompts import AGGREGATOR_SYSTEM_PROMPT
 from app.llm.parser import parse_json_response
 from app.telemetry.logger import logger
@@ -33,7 +34,8 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     cache_hits = state.get("cache_hits", {})
     ws_messages = list(state.get("ws_messages", []))
 
-    llm = get_reasoning_llm()
+    llm = get_aggregator_llm()
+
     final_results: List[Dict[str, Any]] = []
     total_latency = 0
 

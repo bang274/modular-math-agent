@@ -12,7 +12,8 @@ from typing import Any, Dict
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agent.state import AgentState
-from app.llm.provider import get_extraction_llm
+from app.llm.provider import get_extractor_llm
+
 from app.llm.prompts import EXTRACTOR_SYSTEM_PROMPT, EXTRACTOR_IMAGE_PROMPT
 from app.llm.parser import parse_json_response
 from app.telemetry.logger import logger
@@ -36,7 +37,8 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     raw_image = state.get("raw_image_b64")
     upload_type = state.get("upload_type", "text")
 
-    llm = get_extraction_llm()
+    llm = get_extractor_llm()
+
 
     try:
         messages = [SystemMessage(content=EXTRACTOR_SYSTEM_PROMPT)]

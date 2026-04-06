@@ -1,11 +1,4 @@
-"""
-Routing Edges — Conditional edge functions for LangGraph.
-
-Person 3 owns this file.
-Defines routing logic between nodes in the agent graph.
-"""
-
-from typing import Literal
+from typing import List, Literal, Union
 
 from app.agent.state import AgentState
 from app.telemetry.logger import logger
@@ -44,10 +37,10 @@ def route_after_cache(state: AgentState) -> Literal["classifier", "aggregator"]:
 
 def route_after_classifier(
     state: AgentState,
-) -> Literal["easy_solver", "hard_solver", "both_solvers"]:
+) -> Union[str, List[str]]:
     """Route after classification based on problem difficulties.
 
-    Returns which solver(s) to run.
+    Returns which solver(s) to run (can be multiple for parallel execution).
     """
     easy_ids = state.get("easy_problems", [])
     hard_ids = state.get("hard_problems", [])
@@ -56,8 +49,15 @@ def route_after_classifier(
     has_hard = len(hard_ids) > 0
 
     if has_easy and has_hard:
-        return "both_solvers"
+        logger.info("[Router] Both easy and hard problems found: Branching parallel solvers")
+        return ["easy_solver", "hard_solver"]
     elif has_easy:
+        logger.info("[Router] Routing to EasySolver")
         return "easy_solver"
-    else:
+    elif has_hard:
+        logger.info("[Router] Routing to HardSolver")
         return "hard_solver"
+    else:
+        logger.warning("[Router] No problems classified, skipping to aggregator")
+        return "aggregator"
+
