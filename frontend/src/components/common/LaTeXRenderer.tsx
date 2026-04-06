@@ -17,10 +17,16 @@ export const LaTeXRenderer: React.FC<Props> = ({
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
 
+  // Strip dollar signs if present
+  const cleanLatex = latex
+    .replace(/^\$+|\$+$/g, '')
+    .replace(/^\$\$|\$\$$/g, '')
+    .trim();
+
   useEffect(() => {
-    if (containerRef.current && latex) {
+    if (containerRef.current && cleanLatex) {
       try {
-        katex.render(latex, containerRef.current, {
+        katex.render(cleanLatex, containerRef.current, {
           displayMode,
           throwOnError: false,
           trust: true,
@@ -29,13 +35,13 @@ export const LaTeXRenderer: React.FC<Props> = ({
       } catch {
         // Fallback to raw text
         if (containerRef.current) {
-          containerRef.current.textContent = latex;
+          containerRef.current.textContent = cleanLatex;
         }
       }
     }
-  }, [latex, displayMode]);
+  }, [cleanLatex, displayMode]);
 
-  if (!latex) return null;
+  if (!cleanLatex) return null;
 
   return <span ref={containerRef} className={`latex-render ${className}`} />;
 };
