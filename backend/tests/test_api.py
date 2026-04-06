@@ -5,7 +5,12 @@ Covers: health, solve, upload, history, metrics,
         middleware (request ID, timing), error handler.
 """
 
-import pytest
+import asyncio
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+
+from app.db.database import db_manager
+from app.db.repository import session_repo
 
 from app.telemetry.metrics import metrics
 
@@ -111,3 +116,71 @@ class TestErrorHandler:
         assert response.status_code == 422
         data = response.json()
         assert "detail" in data
+
+
+class TestSolveCacheHitIntegration:
+    def test_solve_cache_hit_persists_flag_in_db(self, client, tmp_path):
+        """Cache-hit result should be returned and persisted with cache_hit=True."""
+        asyncio.run(
+            db_manager.init(
+                SimpleNamespace(
+                    database_url=f"sqlite+aiosqlite:///{tmp_path / 'integration_cache_hit.db'}"
+                )
+            )
+        )
+
+        pipeline_state = {
+            "session_id": "pipeline-session",
+            "upload_type": "text",
+            "raw_text": "x + 1 = 2",
+            "problems": [{"id": 1, "content": "x + 1 = 2"}],
+            "final_results": [
+                {
+                    "problem_id": 1,
+                    "original": "x + 1 = 2",
+                    "difficulty": "easy",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "description": "Loaded from cache",
+                            "latex": "x = 1",
+                        }
+                    ],
+                    "final_answer": "x = 1",
+                    "confidence": 0.99,
+                    "tool_trace": {
+                        "route": "cached",
+                        "tools_used": [],
+                        "attempts": 1,
+                        "cache_hit": True,
+                        "latency_ms": 2,
+                        "errors": [],
+                    },
+                    "error": None,
+                }
+            ],
+            "total_latency_ms": 2,
+        }
+
+        with patch(
+            "app.api.v1.solve.run_agent_pipeline",
+            new=AsyncMock(return_value=pipeline_state),
+        ):
+            try:
+                response = client.post("/api/v1/solve", json={"text": "x + 1 = 2"})
+
+                assert response.status_code == 200
+                body = response.json()
+                assert body["cached_count"] == 1
+                assert body["results"][0]["tool_trace"]["cache_hit"] is True
+
+                session_id = body["session_id"]
+                stored_session = asyncio.run(session_repo.get_session(session_id))
+
+                assert stored_session is not None
+                assert len(stored_session["solutions"]) == 1
+                stored_solution = stored_session["solutions"][0]
+                assert bool(stored_solution["cache_hit"]) is True
+                assert stored_solution["solve_route"] == "cached"
+            finally:
+                asyncio.run(db_manager.close())
