@@ -87,12 +87,16 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
         try:
             start = time.time()
 
+            history = state.get("chat_history", [])[-5:]
+            history_str = json.dumps(history, indent=2) if history else "None"
+
             aggregate_prompt = (
                 f"Problem: {problem['content']}\n\n"
+                f"CHAT HISTORY:\n{history_str}\n\n"
                 f"Solving route: {result.get('solve_route', 'unknown')}\n"
                 f"Tools used: {result.get('tools_used', [])}\n\n"
             )
-
+# ... rest of tool output logic ...
             # Include tool outputs
             tool_outputs = result.get("tool_outputs", {})
             if tool_outputs:
@@ -116,6 +120,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 HumanMessage(content=aggregate_prompt),
             ]
 
+
             response = await llm.ainvoke(messages)
             parsed = parse_json_response(response.content)
 
@@ -134,6 +139,16 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
             solve_latency = result.get("latency_ms", 0)
             total_latency += solve_latency + agg_latency
 
+            # Collect any images from tool results
+            images = []
+            if result.get("tool_outputs_raw"):
+                # If we have tool outputs, extract images from them
+                for t_res in result["tool_outputs_raw"].values():
+                    if hasattr(t_res, "images") and t_res.images:
+                        images.extend(t_res.images)
+            elif result.get("images"):
+                images.extend(result["images"])
+
             final_results.append({
                 "problem_id": pid,
                 "original": problem["content"],
@@ -141,6 +156,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 "steps": steps,
                 "final_answer": final_answer,
                 "confidence": confidence,
+                "images": images,
                 "error": result.get("error"),
                 "tool_trace": {
                     "route": result.get("solve_route", "unknown"),
@@ -151,6 +167,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                     "errors": result.get("errors", []),
                 },
             })
+
 
         except Exception as e:
             logger.error(f"[Aggregator] Error aggregating problem {pid}: {e}")

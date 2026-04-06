@@ -86,19 +86,29 @@ async def _solve_single_hard_problem(
                 f"(attempt {attempt}/{max_retries})"
             )
 
-            # Generate Python code via LLM
-            code_prompt = PYTHON_CODEGEN_PROMPT.format(
-                problem=content,
-                error_context=error_context,
-            )
-            # Choose LLM: Coder for first try, Fixer for retries
-            current_llm = coder_llm if attempt == 1 else fixer_llm
+            # Choose LLM & Prompt: Coder for first try, Fixer for retries
+            if attempt == 1:
+                current_llm = coder_llm
+                code_prompt = PYTHON_CODEGEN_PROMPT.format(
+                    problem=content,
+                )
+            else:
+                from app.llm.prompts import PYTHON_FIXER_PROMPT
+                current_llm = fixer_llm
+                # Get the previous code if available
+                prev_code = tool_outputs.get("python_code", "")
+                code_prompt = PYTHON_FIXER_PROMPT.format(
+                    problem=content,
+                    previous_code=prev_code,
+                    error_context=error_context,
+                )
 
             try:
                 code_response = await current_llm.ainvoke([
                     HumanMessage(content=code_prompt)
                 ])
                 code = extract_python_code(code_response.content)
+
             except Exception as e:
                 errors.append(f"Python {'codegen' if attempt == 1 else 'fixing'} error: {e}")
                 continue

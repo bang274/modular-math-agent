@@ -9,9 +9,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 import time
+from langsmith import traceable
+from app.telemetry.logger import logger
 
 
 @dataclass
+
+
 class ToolResult:
     """Standardized result from any tool execution."""
     success: bool
@@ -53,15 +57,24 @@ class BaseTool(ABC):
     async def safe_execute(self, query: str, **kwargs) -> ToolResult:
         """Execute with error handling and timing."""
         start = time.time()
+        
+        # Define a local traced function to allow dynamic naming
+        @traceable(name=self.name, run_type="tool")
+        async def _traced_execute():
+            return await self.execute(query, **kwargs)
+
         try:
-            result = await self.execute(query, **kwargs)
+            result = await _traced_execute()
             result.latency_ms = int((time.time() - start) * 1000)
             result.tool_name = self.name
             return result
         except Exception as e:
+            logger.error(f"[Tool] {self.name} failed: {e}")
             return ToolResult(
                 success=False,
                 error=f"{self.name} error: {str(e)}",
                 latency_ms=int((time.time() - start) * 1000),
                 tool_name=self.name,
             )
+
+

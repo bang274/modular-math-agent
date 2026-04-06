@@ -22,7 +22,8 @@ class WolframAlphaTool(BaseTool):
     Rate limit: ~2000 calls/month on free plan.
     """
 
-    name = "wolfram_alpha"
+    name = "wolfram"
+
     description = (
         "Query Wolfram Alpha for symbolic math computation. "
         "Best for: integrals, derivatives, equations, limits, series."
@@ -42,19 +43,27 @@ class WolframAlphaTool(BaseTool):
             ToolResult with the computed answer.
         """
         if not self.settings.wolfram_alpha_app_id:
+            logger.error("[Wolfram] WOLFRAM_ALPHA_APP_ID is not configured in .env!")
             return ToolResult(
                 success=False,
                 error="Wolfram Alpha API key not configured",
             )
 
-        # Clean LaTeX for Wolfram Alpha
-        clean_query = self._prepare_query(query)
-        logger.info(f"[Wolfram] Query: {clean_query}")
+
+        # Tier 1.5: Use LLM to translate/clean query for Wolfram Alpha
+        translated_query = await self._translate_query(query)
+        logger.info(f"[Wolfram] Original: {query}")
+        logger.info(f"[Wolfram] Translated: {translated_query}")
+        
+        # Final cleanup (strip LaTeX if LLM missed it) 
+        clean_query = self._prepare_query(translated_query)
+
 
         params = {
             "input": clean_query,
             "appid": self.settings.wolfram_alpha_app_id,
         }
+
 
         try:
             async with httpx.AsyncClient(
@@ -105,8 +114,25 @@ class WolframAlphaTool(BaseTool):
             logger.error(f"[Wolfram] Unexpected error: {e}")
             return ToolResult(success=False, error=str(e))
 
+    async def _translate_query(self, query: str) -> str:
+        """Use LLM to translate math problem into Wolfram Alpha syntax."""
+        from app.llm.provider import get_planner_llm
+        from app.llm.prompts import WOLFRAM_QUERY_PROMPT
+        from langchain_core.messages import HumanMessage
+        
+        llm = get_planner_llm()
+        prompt = WOLFRAM_QUERY_PROMPT.format(content=query)
+        
+        try:
+            response = await llm.ainvoke([HumanMessage(content=prompt)])
+            return response.content.strip().replace("\"", "")
+        except Exception as e:
+            logger.warning(f"[Wolfram] Query translation failed: {e}")
+            return query
+
     def _prepare_query(self, query: str) -> str:
-        """Convert LaTeX-style query to Wolfram Alpha-friendly format."""
+        """Manual backup cleanup for Wolfram Alpha."""
+
         # Basic LaTeX → Wolfram conversions
         replacements = {
             "\\int": "integrate",

@@ -4,7 +4,20 @@ from app.agent.state import AgentState
 from app.telemetry.logger import logger
 
 
+def route_after_guard(state: AgentState) -> Literal["extractor", "guarded_end"]:
+    """Route after guardrail check: proceed to extraction or end early."""
+    is_guarded = state.get("is_guarded", False)
+    intent = state.get("intent", "math")
+
+    if is_guarded:
+        logger.info(f"[Router] Query guarded (intent={intent}), ending early")
+        return "guarded_end"
+
+    return "extractor"
+
+
 def route_after_extraction(state: AgentState) -> Literal["cache_check", "error_end"]:
+
     """Route after extraction: proceed to cache check or end with error."""
     problems = state.get("problems", [])
     error = state.get("extraction_error")
@@ -60,4 +73,20 @@ def route_after_classifier(
     else:
         logger.warning("[Router] No problems classified, skipping to aggregator")
         return "aggregator"
+
+
+def route_after_critic(state: AgentState) -> Literal["aggregator", "hard_solver"]:
+    """Route after critic check.
+    
+    If 'needs_revision' list is not empty, go back to solve.
+    Otherwise, move to aggregation.
+    """
+    needs_revision = state.get("needs_revision", [])
+    
+    if needs_revision:
+        logger.warning(f"[Router] {len(needs_revision)} problems need revision. Routing back to HardSolver.")
+        return "hard_solver"
+    
+    return "aggregator"
+
 

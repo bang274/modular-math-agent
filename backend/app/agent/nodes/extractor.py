@@ -95,7 +95,20 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     llm = get_extractor_llm()
 
     try:
-        messages = [SystemMessage(content=EXTRACTOR_SYSTEM_PROMPT)]
+        # Prepare context from history
+        history = state.get("chat_history", [])[-5:]
+        history_str = json.dumps(history, indent=2) if history else "None"
+        
+        context_msg = (
+            f"CHAT HISTORY (last 5 turns):\n{history_str}\n\n"
+            f"Use this history to resolve any relative pronouns or follow-up intents."
+        )
+
+        messages = [
+            SystemMessage(content=EXTRACTOR_SYSTEM_PROMPT),
+            SystemMessage(content=context_msg)
+        ]
+
 
         if upload_type == "image" and raw_image:
             messages.append(HumanMessage(content=[
@@ -111,7 +124,12 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{raw_image}"}},
             ]))
         else:
-            messages.append(HumanMessage(content=f"Extract math problems from:\n\n{raw_text}"))
+            # Text-only
+            messages.append(
+                HumanMessage(content=f"Extract math problems from this new input:\n\n{raw_text}")
+            )
+
+        # Call LLM
 
         response = await llm.ainvoke(messages)
         parsed = parse_json_response(response.content)

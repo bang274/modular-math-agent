@@ -44,6 +44,8 @@ class AgentState(TypedDict, total=False):
     # ── Session ──────────────────────────────────────────────
     session_id: str
     status: str                       # SessionStatus value
+    chat_history: Annotated[List[Dict[str, str]], operator.add]
+
 
     # ── Input ────────────────────────────────────────────────
     raw_text: Optional[str]
@@ -65,6 +67,8 @@ class AgentState(TypedDict, total=False):
     # ── Aggregation ──────────────────────────────────────────
     final_results: List[Dict[str, Any]]
     total_latency_ms: int
+    needs_revision: List[int]
+
 
     # ── Cache (Person 4) ─────────────────────────────────────
     cache_hits: Dict[int, Dict[str, Any]]  # problem_id → cached result
@@ -73,6 +77,12 @@ class AgentState(TypedDict, total=False):
     # ── WebSocket streaming ──────────────────────────────────
     ws_messages: Annotated[List[Dict[str, Any]], operator.add]
 
+    # ── Guardrail (Gate) ─────────────────────────────────────
+    is_guarded: bool                  # True if rejected or greeting
+    guard_response: Optional[str]     # Direct response (greeting/refusal)
+    intent: str                       # "math" | "greeting" | "rejected" | "unknown"
+
     # ── Errors ───────────────────────────────────────────────
     errors: Annotated[List[str], operator.add]
+
 

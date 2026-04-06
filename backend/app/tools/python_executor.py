@@ -15,16 +15,29 @@ from pathlib import Path
 from typing import Optional
 
 from app.config import get_settings
-from app.tools.base import BaseTool, ToolResult
 from app.telemetry.logger import logger
+from dataclasses import field
+
+@dataclass
+class ToolResult:
+    """Standardized result from any tool execution."""
+    success: bool
+    output: str = ""
+    error: Optional[str] = None
+    latency_ms: int = 0
+    tool_name: str = ""
+    images: List[str] = field(default_factory=list)  # Base64 encoded images
+    raw_data: Dict[str, Any] = field(default_factory=dict)
+
 
 
 # Modules that are ALLOWED in the sandbox
 ALLOWED_MODULES = {
-    "math", "cmath", "numpy", "sympy", "scipy",
+    "math", "cmath", "numpy", "sympy", "scipy", "matplotlib", "pyplot", "pandas",
     "fractions", "decimal", "statistics", "itertools",
     "functools", "collections", "re", "json",
 }
+
 
 # Modules that are BLOCKED (dangerous)
 BLOCKED_MODULES = {
@@ -44,7 +57,8 @@ class PythonExecutorTool(BaseTool):
     Retry: supports up to MAX_RETRIES attempts with error feedback.
     """
 
-    name = "python_executor"
+    name = "python_codegen"
+
     description = (
         "Execute Python code in a sandboxed environment. "
         "Best for: numerical computation, algorithmic solutions. "
@@ -114,82 +128,65 @@ class PythonExecutorTool(BaseTool):
         """Run code in an isolated subprocess with timeout."""
         timeout = self.settings.python_sandbox_timeout_seconds
 
-        # Write code to temporary file
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                suffix=".py",
-                delete=False,
-                prefix="math_sandbox_",
-            ) as f:
-                f.write(code)
-                tmp_path = f.name
+        # Auto-inject Agg backend for matplotlib if used
+        if "matplotlib" in code or "plt." in code:
+            code = "import matplotlib\nmatplotlib.use('Agg')\n" + code
 
-            logger.info(f"[PythonExec] Running code ({len(code)} chars, timeout={timeout}s)")
-
-            # Run in subprocess
-            process = await asyncio.create_subprocess_exec(
-                sys.executable, tmp_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                # Limit resource usage
-                env={
-                    **os.environ,
-                    "PYTHONDONTWRITEBYTECODE": "1",
-                },
-            )
-
+        # Use a temporary directory to capture generated plots
+        with tempfile.TemporaryDirectory(prefix="math_plot_") as plot_dir:
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=timeout,
-                )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                return ToolResult(
-                    success=False,
-                    error=f"Code execution timed out after {timeout}s "
-                          f"(possible infinite loop)",
-                )
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    suffix=".py",
+                    delete=False,
+                    dir=plot_dir,
+                ) as f:
+                    f.write(code)
+                    tmp_path = f.name
 
-            stdout_text = stdout.decode("utf-8", errors="replace").strip()
-            stderr_text = stderr.decode("utf-8", errors="replace").strip()
-
-            if process.returncode != 0:
-                # Extract useful error info
-                error_msg = self._extract_error(stderr_text)
-                logger.warning(f"[PythonExec] Code error: {error_msg}")
-                return ToolResult(
-                    success=False,
-                    output=stdout_text,
-                    error=error_msg,
-                    raw_data={"stderr": stderr_text, "returncode": process.returncode},
+                process = await asyncio.create_subprocess_exec(
+                    sys.executable, tmp_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=plot_dir,  # Run in the plot dir to capture outputs
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
                 )
 
-            if not stdout_text:
-                return ToolResult(
-                    success=False,
-                    error="Code produced no output. Make sure to print() the result.",
-                )
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(),
+                        timeout=timeout,
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    return ToolResult(success=False, error=f"Timeout after {timeout}s")
 
-            logger.info(f"[PythonExec] Output: {stdout_text[:200]}")
-            return ToolResult(
-                success=True,
-                output=stdout_text,
-                raw_data={"stderr": stderr_text} if stderr_text else {},
-            )
+                stdout_text = stdout.decode("utf-8", errors="replace").strip()
+                stderr_text = stderr.decode("utf-8", errors="replace").strip()
 
-        except Exception as e:
-            logger.error(f"[PythonExec] Unexpected error: {e}")
-            return ToolResult(success=False, error=str(e))
+                # Capture any PNG files created in the directory
+                images = []
+                for file_name in os.listdir(plot_dir):
+                    if file_name.endswith(".png"):
+                        full_path = os.path.join(plot_dir, file_name)
+                        with open(full_path, "rb") as image_file:
+                            encoded = base64.b64encode(image_file.read()).decode("utf-8")
+                            images.append(encoded)
 
-        finally:
-            # Clean up temp file
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+                if process.returncode != 0:
+                    error_msg = self._extract_error(stderr_text)
+                    return ToolResult(success=False, output=stdout_text, error=error_msg, images=images)
+
+                if not stdout_text and not images:
+                    return ToolResult(success=False, error="No output or plot produced.")
+
+                return ToolResult(success=True, output=stdout_text, images=images)
+
+            finally:
+                if 'tmp_path' in locals():
+                    try: os.unlink(tmp_path)
+                    except: pass
+
 
     def _extract_error(self, stderr: str) -> str:
         """Extract the most useful error info from stderr."""
