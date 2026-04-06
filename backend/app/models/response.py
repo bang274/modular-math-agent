@@ -43,8 +43,13 @@ class ProblemResult(BaseModel):
     steps: List[SolutionStep] = Field(default_factory=list)
     final_answer: str = Field("", description="Final answer in LaTeX")
     confidence: float = Field(0.0, ge=0.0, le=1.0)
+    images: List[str] = Field(
+        default_factory=list, 
+        description="Base64 encoded images (e.g., mathematical plots)"
+    )
     tool_trace: ToolTrace = Field(default_factory=lambda: ToolTrace(route="unknown"))
     error: Optional[str] = Field(None, description="Error message if failed")
+
 
 
 class SolveResponse(BaseModel):
