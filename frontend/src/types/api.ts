@@ -119,6 +119,7 @@ export interface ChatMessage {
   status: MessageStatus;
   results?: ProblemResult[];
   sessionId?: string;
+  error?: string | null;
 }
 
 export interface Conversation {

@@ -28,7 +28,7 @@ export const ChatInput: React.FC = () => {
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     maxFiles: 3,
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 5 * 1024 * 1024,
     disabled: isLoading,
   });
 
@@ -64,6 +64,7 @@ export const ChatInput: React.FC = () => {
 
     setLoading(true);
     setText('');
+    images.forEach((img) => URL.revokeObjectURL(img.preview));
     setImages([]);
 
     try {
@@ -80,8 +81,10 @@ export const ChatInput: React.FC = () => {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra';
-      updateMessage(assistantMsgId, { status: 'error' });
+      updateMessage(assistantMsgId, { status: 'error', error: message });
       setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 

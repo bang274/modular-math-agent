@@ -18,6 +18,65 @@ from app.llm.parser import parse_json_response
 from app.telemetry.logger import logger
 
 
+def _extract_clean_answer(raw_text: str) -> str:
+    """Extract the core math answer from raw Wolfram Alpha output.
+
+    Wolfram LLM API returns verbose text with images, Riemann sums,
+    Wolfram Language code, etc. This extracts just the key result.
+    """
+    import re
+
+    if not raw_text or len(raw_text) < 5:
+        return raw_text
+
+    # If the raw text is short and clean, just return it
+    if len(raw_text) < 100 and "\n" not in raw_text:
+        return raw_text
+
+    lines = raw_text.split("\n")
+    # Lines to skip (noise from Wolfram)
+    skip_patterns = [
+        r"^Query:",
+        r"^Wolfram\|?Alpha",
+        r"^Visual representation",
+        r"^image:",
+        r"^https?://",
+        r"^Wolfram Language",
+        r"^Plot\[",
+        r"^Riemann sum",
+        r"^left sum",
+        r"^right sum",
+        r"^midpoint",
+        r"^\(assuming",
+    ]
+
+    useful_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if any(re.match(pat, line, re.IGNORECASE) for pat in skip_patterns):
+            continue
+        useful_lines.append(line)
+
+    if not useful_lines:
+        return raw_text.split("\n")[0] if raw_text else ""
+
+    # Prioritize lines with "=" (these contain the actual answer)
+    answer_lines = [l for l in useful_lines if "=" in l and "http" not in l]
+    if answer_lines:
+        # Pick the most specific answer line (usually the shortest with "=")
+        best = min(answer_lines, key=len)
+        # Clean up Wolfram notation
+        best = re.sub(r"\s*≈\s*[\d.]+", "", best)  # Remove decimal approximation
+        # Extract just the RHS of ": result = answer"
+        if ": " in best:
+            best = best.split(": ", 1)[1]
+        return best.strip()
+
+    return useful_lines[0]
+
+
 async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     """Aggregate and format all solving results.
 
@@ -35,6 +94,22 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     ws_messages = list(state.get("ws_messages", []))
 
     llm = get_aggregator_llm()
+
+    # ── Handle Case: No math found/Extraction Error ────────────────
+    if not problems and state.get("extraction_error"):
+        logger.info("[Aggregator] Returning friendly 'No Math Found' response.")
+        return {
+            "status": "success",
+            "final_results": [],
+            "aggregator_error": None,
+            "ws_messages": ws_messages + [{
+                "type": "final_answer",
+                "data": {
+                    "text": state["extraction_error"],
+                    "results": []
+                }
+            }]
+        }
 
     final_results: List[Dict[str, Any]] = []
     total_latency = 0
@@ -96,23 +171,30 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 f"Solving route: {result.get('solve_route', 'unknown')}\n"
                 f"Tools used: {result.get('tools_used', [])}\n\n"
             )
+
+            # Include tool outputs with cleanup hints
 # ... rest of tool output logic ...
             # Include tool outputs
             tool_outputs = result.get("tool_outputs", {})
             if tool_outputs:
                 for tool_name, output in tool_outputs.items():
-                    aggregate_prompt += f"--- {tool_name} output ---\n{output}\n\n"
+                    # Truncate very long outputs to avoid prompt overflow
+                    truncated = output[:2000] if isinstance(output, str) else str(output)[:2000]
+                    aggregate_prompt += f"--- {tool_name} raw output ---\n{truncated}\n\n"
             elif result.get("final_answer"):
-                aggregate_prompt += f"Answer: {result['final_answer']}\n\n"
+                aggregate_prompt += f"Answer: {result['final_answer'][:1000]}\n\n"
 
             if result.get("steps"):
                 aggregate_prompt += f"Steps: {result['steps']}\n\n"
 
             if result.get("search_context"):
-                aggregate_prompt += f"Search context: {result['search_context']}\n\n"
+                aggregate_prompt += f"Search context: {result['search_context'][:1000]}\n\n"
 
             aggregate_prompt += (
-                "Please synthesize a well-formatted step-by-step solution with LaTeX."
+                "IMPORTANT: Extract the core mathematical result from the tool output above. "
+                "Ignore image URLs, Wolfram Language code, Riemann sums, and website links. "
+                "Create a clean step-by-step solution with Vietnamese descriptions and proper LaTeX. "
+                "Return ONLY valid JSON."
             )
 
             messages = [
@@ -131,9 +213,15 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 final_answer = parsed.get("final_answer", result.get("final_answer", ""))
                 confidence = parsed.get("confidence", result.get("confidence", 0.5))
             else:
-                # Fallback: use raw result
+                # Fallback: extract key result from raw tool output
+                raw_answer = result.get("final_answer", "")
+                final_answer = _extract_clean_answer(raw_answer)
                 steps = result.get("steps", [])
-                final_answer = result.get("final_answer", "")
+                if not steps and final_answer:
+                    steps = [
+                        {"step": 1, "description": "Đề bài", "latex": problem["content"]},
+                        {"step": 2, "description": "Kết quả tính toán", "latex": final_answer},
+                    ]
                 confidence = result.get("confidence", 0.5)
 
             solve_latency = result.get("latency_ms", 0)

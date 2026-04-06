@@ -10,6 +10,8 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition);
 }
 
 .header-brand {
@@ -41,6 +43,7 @@
   font-weight: 700;
   background: linear-gradient(135deg, var(--blue-300), var(--orange-400));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
 }
@@ -79,6 +82,28 @@
 .nav-link.active {
   color: var(--accent);
   background: var(--accent-glow);
+}
+
+.header-new-chat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.header-new-chat:hover {
+  background: var(--accent);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-glow);
 }
 
 @media (max-width: 768px) {

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useChatStore } from '../../store/chatStore';
+import { useSolve } from '../../hooks/useSolve';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import './ChatWindow.css';
@@ -7,6 +8,11 @@ import './ChatWindow.css';
 export const ChatWindow: React.FC = () => {
   const activeId = useChatStore((s) => s.activeId);
   const conversations = useChatStore((s) => s.conversations);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const updateMessage = useChatStore((s) => s.updateMessage);
+  const setLoading = useChatStore((s) => s.setLoading);
+  const setError = useChatStore((s) => s.setError);
+  const { solveFromText } = useSolve();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId);
@@ -14,6 +20,26 @@ export const ChatWindow: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeConv?.messages.length]);
+
+  const handleSuggestion = async (text: string) => {
+    const userMsgId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const assistantMsgId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+    addMessage({ id: userMsgId, role: 'user', content: text, timestamp: Date.now(), status: 'success' });
+    addMessage({ id: assistantMsgId, role: 'assistant', content: '', timestamp: Date.now(), status: 'processing' });
+    setLoading(true);
+
+    try {
+      const response = await solveFromText(text);
+      updateMessage(assistantMsgId, { results: response.results, sessionId: response.session_id, status: 'success' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+      updateMessage(assistantMsgId, { status: 'error', error: message });
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="chat-window">
@@ -36,9 +62,9 @@ export const ChatWindow: React.FC = () => {
           <h3>Math AI Agent</h3>
           <p>Nhập đề bài toán bằng text hoặc upload ảnh để nhận lời giải chi tiết.</p>
           <div className="chat-window__suggestions">
-            <span className="chat-window__suggestion">Tính tích phân ∫₀¹ x² dx</span>
-            <span className="chat-window__suggestion">Giải phương trình x² + 2x - 3 = 0</span>
-            <span className="chat-window__suggestion">Tìm đạo hàm f(x) = sin(x²)</span>
+            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Tính tích phân ∫₀¹ x² dx')}>Tính tích phân ∫₀¹ x² dx</button>
+            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Giải phương trình x² + 2x - 3 = 0')}>Giải phương trình x² + 2x - 3 = 0</button>
+            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Tìm đạo hàm f(x) = sin(x²)')}>Tìm đạo hàm f(x) = sin(x²)</button>
           </div>
         </div>
       )}

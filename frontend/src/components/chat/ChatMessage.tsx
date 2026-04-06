@@ -1,7 +1,5 @@
 import React from 'react';
 import type { ChatMessage as ChatMessageType } from '../../types/api';
-import { LaTeXRenderer } from '../common/LaTeXRenderer';
-import { StatusBadge } from '../common/StatusBadge';
 import { SolutionCard } from '../solve/SolutionCard';
 import './ChatMessage.css';
 
@@ -37,7 +35,7 @@ export const ChatMessage: React.FC<Props> = ({ message }) => {
           </div>
         )}
 
-        {!isUser && message.status === 'processing' && (
+        {!isUser && (message.status === 'processing') && (
           <div className="chat-message__typing">
             <span />
             <span />
@@ -45,13 +43,18 @@ export const ChatMessage: React.FC<Props> = ({ message }) => {
           </div>
         )}
 
-        {!isUser && message.status === 'error' && (
+        {!isUser && (message.status === 'error') && (
           <div className="chat-message__error">
-            Có lỗi xảy ra khi xử lý. Vui lòng thử lại.
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{message.error || 'Có lỗi xảy ra khi xử lý. Vui lòng thử lại.'}</span>
           </div>
         )}
 
-        {!isUser && message.status === 'success' && message.results && message.results.length > 0 && (
+        {!isUser && (message.status === 'success') && message.results && message.results.length > 0 && (
           <div className="chat-message__results">
             {message.results.map((result) => (
               <SolutionCard key={result.problem_id} result={result} />

@@ -174,7 +174,10 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
             })
 
         if not problems:
-            return {"problems": [], "extraction_error": "No valid math problems found in input"}
+            return {
+                "problems": [],
+                "extraction_error": "Tôi không tìm thấy bài toán nào trong tin nhắn này. Bạn hãy gửi đề bài hoặc ảnh chụp bài tập nhé!",
+            }
 
         logger.info(f"[Extractor] Extracted {len(problems)} problems")
         return {

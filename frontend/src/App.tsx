@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Layout } from './components/layout/Layout'
 import { Sidebar } from './components/chat/Sidebar'
 import { ChatWindow } from './components/chat/ChatWindow'
@@ -5,11 +6,12 @@ import { useChatStore } from './store/chatStore'
 import './App.css'
 
 function App() {
-  const activeId = useChatStore((s) => s.activeId)
 
-  if (!activeId) {
-    useChatStore.getState().newConversation()
-  }
+  useEffect(() => {
+    if (!useChatStore.getState().activeId) {
+      useChatStore.getState().newConversation()
+    }
+  }, [])
 
   return (
     <Layout>
@@ -22,3 +24,4 @@ function App() {
 }
 
 export default App
+

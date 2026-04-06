@@ -72,7 +72,10 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
             <div className="solution-card__answer">
               <span className="label">Đáp án:</span>
               <div className="answer-box">
-                <LaTeXRenderer latex={result.final_answer} displayMode />
+                {result.final_answer.includes('\\') || result.final_answer.includes('^') || result.final_answer.includes('_')
+                  ? <LaTeXRenderer latex={result.final_answer} displayMode />
+                  : <span className="answer-text">{result.final_answer}</span>
+                }
               </div>
             </div>
           )}
