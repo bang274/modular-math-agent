@@ -53,7 +53,7 @@ function saveConversations(convs: Conversation[]) {
 
 const initial = loadConversations();
 
-export const useChatStore = create<ChatState>((set, get) => ({
+export const useChatStore = create<ChatState>((set) => ({
   conversations: initial,
   activeId: initial.length > 0 ? initial[initial.length - 1].id : null,
   isLoading: false,

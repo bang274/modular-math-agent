@@ -5,6 +5,12 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import './ChatWindow.css';
 
+const SUGGESTIONS = [
+  'Giải phương trình: 2x + 5 = 13',
+  'Tính diện tích hình tròn có bán kính 5cm',
+  'Tìm x biết: (x - 3)^2 = 16',
+];
+
 export const ChatWindow: React.FC = () => {
   const activeId = useChatStore((s) => s.activeId);
   const conversations = useChatStore((s) => s.conversations);
@@ -13,12 +19,15 @@ export const ChatWindow: React.FC = () => {
   const setLoading = useChatStore((s) => s.setLoading);
   const setError = useChatStore((s) => s.setError);
   const { solveFromText } = useSolve();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [activeConv?.messages.length]);
 
   const handleSuggestion = async (text: string) => {
@@ -44,11 +53,10 @@ export const ChatWindow: React.FC = () => {
   return (
     <div className="chat-window">
       {activeConv && activeConv.messages.length > 0 ? (
-        <div className="chat-window__messages">
+        <div className="chat-window__messages" ref={messagesContainerRef}>
           {activeConv.messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
-          <div ref={messagesEndRef} />
         </div>
       ) : (
         <div className="chat-window__empty">
@@ -62,9 +70,15 @@ export const ChatWindow: React.FC = () => {
           <h3>Math AI Agent</h3>
           <p>Nhập đề bài toán bằng text hoặc upload ảnh để nhận lời giải chi tiết.</p>
           <div className="chat-window__suggestions">
-            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Tính tích phân ∫₀¹ x² dx')}>Tính tích phân ∫₀¹ x² dx</button>
-            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Giải phương trình x² + 2x - 3 = 0')}>Giải phương trình x² + 2x - 3 = 0</button>
-            <button className="chat-window__suggestion" onClick={() => handleSuggestion('Tìm đạo hàm f(x) = sin(x²)')}>Tìm đạo hàm f(x) = sin(x²)</button>
+            {SUGGESTIONS.map((suggestion, idx) => (
+              <button
+                key={idx}
+                className="chat-window__suggestion-btn"
+                onClick={() => handleSuggestion(suggestion)}
+              >
+                {suggestion}
+              </button>
+            ))}
           </div>
         </div>
       )}

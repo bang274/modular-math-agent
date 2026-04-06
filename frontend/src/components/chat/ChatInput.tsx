@@ -1,11 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSolve } from '../../hooks/useSolve';
 import { useChatStore } from '../../store/chatStore';
 import type { ChatImage } from '../../types/api';
 import './ChatInput.css';
 
-export const ChatInput: React.FC = () => {
+export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<ChatImage[]>([]);
   const { solveFromText, solveFromUpload } = useSolve();
@@ -15,6 +15,22 @@ export const ChatInput: React.FC = () => {
   const setError = useChatStore((s) => s.setError);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (initialText && initialText.trim()) {
+      setText(initialText);
+      // Focus textarea để user có thể edit hoặc send ngay
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }, [initialText]);
+
+  useEffect(() => {
+    if (!isLoading && textareaRef.current && !initialText) {
+      textareaRef.current.focus();
+    }
+  }, [isLoading, initialText]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.slice(0, 3 - images.length).map((f) => ({
