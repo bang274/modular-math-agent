@@ -7,8 +7,9 @@ All tools must implement this interface for consistent behavior.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import time
+
 from langsmith import traceable
 from app.telemetry.logger import logger
 
@@ -22,17 +23,21 @@ class ToolResult:
     output: str = ""
     error: Optional[str] = None
     raw_data: Dict[str, Any] = field(default_factory=dict)
+    images: List[str] = field(default_factory=list)  # Base64 encoded images
     latency_ms: int = 0
     tool_name: str = ""
+
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "success": self.success,
             "output": self.output,
             "error": self.error,
+            "images": self.images,
             "latency_ms": self.latency_ms,
             "tool_name": self.tool_name,
         }
+
 
 
 class BaseTool(ABC):

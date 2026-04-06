@@ -12,22 +12,12 @@ import sys
 import tempfile
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from app.config import get_settings
+from app.tools.base import BaseTool, ToolResult
 from app.telemetry.logger import logger
-from dataclasses import field
 
-@dataclass
-class ToolResult:
-    """Standardized result from any tool execution."""
-    success: bool
-    output: str = ""
-    error: Optional[str] = None
-    latency_ms: int = 0
-    tool_name: str = ""
-    images: List[str] = field(default_factory=list)  # Base64 encoded images
-    raw_data: Dict[str, Any] = field(default_factory=dict)
 
 
 
