@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Agent — Control Center</title>
+    <style>
+        /* === TEAM (Person 6): Replace this with a proper React/Vite app === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        h1 { color: #7c3aed; margin-bottom: 1rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .input-section {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        textarea {
+            width: 100%;
+            background: #16213e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover { opacity: 0.9; }
+        .thoughts-feed {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+        .step { margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; }
+        .step.thought { background: #16213e; border-left: 3px solid #7c3aed; }
+        .step.action { background: #1a2332; border-left: 3px solid #f59e0b; }
+        .step.observation { background: #162321; border-left: 3px solid #10b981; }
+        .step.final { background: #1f1635; border-left: 3px solid #8b5cf6; font-weight: bold; }
+        .step .label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Math ReAct Agent</h1>
+        <p style="opacity:0.6; margin-bottom: 1.5rem;">
+            Wolfram → Python → Search — Watch the agent think in real-time
+        </p>
+
+        <div class="input-section">
+            <textarea id="question" placeholder="Enter a math question...">What is the derivative of x^3 * sin(x)?</textarea>
+            <br>
+            <button onclick="solve()">🚀 Solve</button>
+            <button onclick="document.getElementById('imageUpload').click()" style="background: #374151;">
+                📷 Upload Image
+            </button>
+            <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="solveImage(this)">
+        </div>
+
+        <h2 style="margin-bottom: 1rem;">Agent Thoughts</h2>
+        <div class="thoughts-feed" id="feed">
+            <p style="opacity: 0.4;">Waiting for a question...</p>
+        </div>
+    </div>
+
+    <script>
+        // === TEAM (Person 6): Replace with proper React components ===
+        const API = 'http://localhost:8000';
+
+        async function solve() {
+            const question = document.getElementById('question').value;
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '<p style="opacity: 0.4;">Thinking...</p>';
+
+            try {
+                const res = await fetch(`${API}/solve/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                });
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                feed.innerHTML = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n').filter(l => l.startsWith('data: '));
+
+                    for (const line of lines) {
+                        const data = JSON.parse(line.slice(6));
+                        const div = document.createElement('div');
+                        div.className = `step ${data.type}`;
+
+                        if (data.type === 'thought') {
+                            div.innerHTML = `<div class="label">💭 Thought (Step ${data.step})</div>${data.content}`;
+                        } else if (data.type === 'action') {
+                            div.innerHTML = `<div class="label">⚡ Action (Step ${data.step})</div>${data.tool}(${data.args})`;
+                        } else if (data.type === 'observation') {
+                            div.innerHTML = `<div class="label">👁 Observation (Step ${data.step})</div><pre>${data.content}</pre>`;
+                        } else if (data.type === 'final_answer') {
+                            div.innerHTML = `<div class="label">✅ Final Answer</div>${data.content}`;
+                            div.className = 'step final';
+                        }
+
+                        feed.appendChild(div);
+                        div.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            } catch (err) {
+                feed.innerHTML = `<p style="color: #ef4444;">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function solveImage(input) {
+            if (!input.files[0]) return;
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '<p style="opacity: 0.4;">Processing image...</p>';
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const res = await fetch(`${API}/solve/image`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+                feed.innerHTML = `
+                    <div class="step final">
+                        <div class="label">✅ Answer (${data.steps} steps)</div>
+                        ${data.answer}
+                    </div>
+                    <div class="step observation">
+                        <div class="label">📊 Tools used</div>
+                        <pre>${JSON.stringify(data.tool_attempts, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (err) {
+                feed.innerHTML = `<p style="color: #ef4444;">Error: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
