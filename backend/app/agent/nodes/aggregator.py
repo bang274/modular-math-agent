@@ -98,14 +98,24 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
     # ── Handle Case: No math found/Extraction Error ────────────────
     if not problems and state.get("extraction_error"):
         logger.info("[Aggregator] Returning friendly 'No Math Found' response.")
+        error_msg = state["extraction_error"]
         return {
             "status": "success",
-            "final_results": [],
-            "aggregator_error": None,
+            "final_results": [
+                {
+                    "problem_id": 0,
+                    "original": state.get("raw_text", ""),
+                    "difficulty": "unknown",
+                    "final_answer": error_msg,
+                    "steps": [{"step": 1, "description": error_msg, "latex": ""}],
+                    "confidence": 1.0,
+                    "tool_trace": {"route": "guardrail"},
+                }
+            ],
             "ws_messages": ws_messages + [{
                 "type": "final_answer",
                 "data": {
-                    "text": state["extraction_error"],
+                    "text": error_msg,
                     "results": []
                 }
             }]

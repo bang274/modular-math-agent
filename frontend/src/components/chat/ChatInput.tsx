@@ -80,7 +80,6 @@ export const ChatInput: React.FC<{ initialText?: string }> = ({ initialText }) =
 
     setLoading(true);
     setText('');
-    images.forEach((img) => URL.revokeObjectURL(img.preview));
     setImages([]);
 
     try {

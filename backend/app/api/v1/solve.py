@@ -56,7 +56,26 @@ async def solve_text(
     except Exception as e:
         logger.error(f"[API] Solve error: {e}")
         metrics.record_error()
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+        
+        # Return a friendly fallback response instead of a 500 error
+        error_msg = "Rất tiếc, hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau giây lát."
+        fallback_result = ProblemResult(
+            problem_id=0,
+            original=request.text,
+            difficulty=Difficulty.UNKNOWN,
+            final_answer=error_msg,
+            steps=[SolutionStep(step=1, description=error_msg)],
+            confidence=0.0,
+            tool_trace=ToolTrace(route="guardrail", errors=[str(e)]),
+        )
+        
+        return SolveResponse(
+            session_id=session_id,
+            status=SessionStatus.FAILED,
+            results=[fallback_result],
+            total_problems=1,
+            failed_count=1,
+        )
 
 
 @router.get("/solve/{session_id}", response_model=SolveResponse)

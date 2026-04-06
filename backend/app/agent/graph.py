@@ -59,7 +59,7 @@ def build_agent_graph() -> StateGraph:
     # Special terminal nodes
     async def guarded_end_node(state: AgentState) -> Dict[str, Any]:
         """Custom terminal node for greetings and rejections."""
-        guard_response = state.get("guard_response", "")
+        guard_response = state.get("guard_response") or state.get("extraction_error", "")
         return {
             "status": "completed",
             "final_results": [
@@ -73,20 +73,26 @@ def build_agent_graph() -> StateGraph:
                     "tool_trace": {"route": "guardrail"},
                 }
             ],
+            "ws_messages": state.get("ws_messages", []),
         }
 
     async def error_end_node(state: AgentState) -> Dict[str, Any]:
+        """Final terminal loop for unrecoverable errors."""
+        error_msg = state.get("extraction_error") or "Rất tiếc, đã có lỗi xảy ra khi xử lý yêu cầu của bạn."
         return {
-            "status": "failed",
-            "final_results": [],
-            "ws_messages": state.get("ws_messages", []) + [
+            "status": "completed",
+            "final_results": [
                 {
-                    "type": "error",
-                    "data": {
-                        "message": state.get("extraction_error", "Unknown error"),
-                    },
+                    "problem_id": 0,
+                    "original": state.get("raw_text", ""),
+                    "difficulty": "unknown",
+                    "final_answer": error_msg,
+                    "steps": [{"step": 1, "description": error_msg, "latex": ""}],
+                    "confidence": 0.0,
+                    "tool_trace": {"route": "guardrail"},
                 }
             ],
+            "ws_messages": state.get("ws_messages", []),
         }
 
     graph.add_node("guarded_end", guarded_end_node)
@@ -116,6 +122,7 @@ def build_agent_graph() -> StateGraph:
         {
             "cache_check": "cache_check",
             "error_end": "error_end",
+            "guarded_end": "guarded_end",
         },
     )
 

@@ -23,8 +23,8 @@ def route_after_extraction(state: AgentState) -> Literal["cache_check", "error_e
     error = state.get("extraction_error")
 
     if not problems or error:
-        logger.info(f"[Router] No problems extracted or error: {error}. Routing to aggregator for feedback.")
-        return "aggregator"
+        logger.info(f"[Router] No problems extracted or error: {error}. Routing to guarded_end for feedback.")
+        return "guarded_end"
 
     return "cache_check"
 
