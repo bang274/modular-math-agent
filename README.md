@@ -95,3 +95,47 @@ docker-compose up -d
 cd backend && python -m pytest tests/ -v
 cd frontend && npm run test
 ```
+
+## 🧩 Team Workflow (Git & Rebase)
+
+To keep our 6-person team synced and our Git history clean, please follow these "Golden Rules":
+
+### 1. Syncing with Main (The Rebase Workflow)
+Instead of `git merge main`, always use **rebase** to keep a linear history.
+
+```bash
+# 1. Update your local main
+git checkout main
+git pull origin main
+
+# 2. Go back to your feature branch
+git checkout feature/your-module
+
+# 3. Rebase your work on top of main
+git rebase main
+
+# 4. If conflicts occur (common in config.py):
+#   - Edit the file to resolve conflict
+#   - git add <conflicted-file>
+#   - git rebase --continue
+
+# 5. Push your clean history (since rebase changes history, force is needed)
+git push origin feature/your-module --force-with-lease
+```
+
+### 2. 🚫 Never Commit These Files
+We've updated `.gitignore`, but double-check your `git status` before committing. **NEVER** add:
+- `backend/data/*.db*` (including `-shm` and `-wal` files)
+- `.env` files (contains your private API keys)
+- `node_modules` or `__pycache__`
+
+### 3. Handling `app/config.py` Conflicts
+Since multiple people add new settings to `config.py`, conflicts are likely. 
+- **Rule**: Keep existing settings from `main` and simply **append** your new ones.
+- If you see `<<<<<<< HEAD`, that's the current `main` branch. 
+- If you see `>>>>>>> your-commit`, that's your new code. 
+- Merge them cleanly; don't delete other people's model configurations!
+
+### 4. Force Push Safety
+Always use `--force-with-lease` instead of a plain `--force`. 
+- **Reason**: It prevents you from accidentally overwriting a teammate's work if they pushed something to your branch while you were rebasing.

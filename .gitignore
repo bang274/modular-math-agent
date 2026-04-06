@@ -26,8 +26,8 @@ env/
 Thumbs.db
 
 # Database
-data/*.db
-data/*.sqlite
+**/data/*.db*
+**/data/*.sqlite*
 
 # Node
 node_modules/

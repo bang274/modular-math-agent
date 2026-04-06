@@ -41,12 +41,12 @@ class Settings(BaseSettings):
     llm_model_extraction: str = "llama-3.1-8b-instant"
     llm_model_classifier: str = "llama-3.1-8b-instant"
     
-    # Granular model IDs (Person 1 naming)
-    llm_model_extractor: str = ""
-    llm_model_planner: str = ""
-    llm_model_coder: str = ""
-    llm_model_fixer: str = ""
-    llm_model_aggregator: str = ""
+    # Granular model IDs (Person 1/Person 2 naming)
+    llm_model_extractor: str = "llama-3.1-8b-instant"
+    llm_model_planner: str = "llama-3.1-8b-instant"
+    llm_model_coder: str = "llama-3.3-70b-versatile"
+    llm_model_fixer: str = "llama-3.1-8b-instant"
+    llm_model_aggregator: str = "llama-3.3-70b-versatile"
 
     # ── Wolfram Alpha ────────────────────────────────────────
     wolfram_alpha_app_id: str = ""
