@@ -1,0 +1,121 @@
+/* ══════════════════════════════════════════════════════════
+   Math AI Agent — Global Design System
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Colors */
+  --bg-primary: #0a0a14;
+  --bg-card: rgba(20, 20, 35, 0.6);
+  --text-primary: #e2e8f0;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.3);
+  --accent: #7c3aed;
+  --accent-light: #a78bfa;
+  --border: rgba(255, 255, 255, 0.06);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Spacing */
+  --radius: 12px;
+  --radius-lg: 16px;
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Subtle background gradient */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── App Layout ────────────────────────────────────────── */
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Selection ─────────────────────────────────────────── */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: #fff;
+}
+
+/* ── Links ─────────────────────────────────────────────── */
+a {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #c4b5fd;
+}
+
+/* ── KaTeX overrides ───────────────────────────────────── */
+.katex-display {
+  margin: 0.5rem 0 !important;
+  overflow-x: auto;
+}
+
+.latex-render .katex {
+  font-size: 1.1em;
+}

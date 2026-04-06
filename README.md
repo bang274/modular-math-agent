@@ -1,86 +1,97 @@
-# Modular Math ReAct Agent (6-Person Team)
-## Advanced Calculus & Algebra Problem Solver
+# 🧠 Math AI Agent Pipeline
 
-**Use Case**: A collaborative, high-reliability math assistant that solves complex calculus, algebra, and physics-related math using a tiered tool-calling architecture.
+AI-powered math problem solver with multi-agent pipeline. Upload text or images of math problems and get step-by-step LaTeX solutions.
 
-**Why this project?** Plain LLMs struggle with multi-step symbolic math and verification. This project implements a **Tiered Reliability Strategy** (Wolfram → Python → Search) to ensure correctness via external verification.
+## ✨ Features
 
----
+- **Multi-input**: Text, image (OCR), or both
+- **Smart routing**: Easy problems → LLM direct, Hard problems → Wolfram Alpha → Python Sandbox → Web Search
+- **Parallel solving**: Multiple problems solved concurrently
+- **Prompt caching**: Redis-based semantic caching for instant repeat answers
+- **Real-time updates**: WebSocket streaming of solve progress
+- **Step-by-step**: LaTeX-formatted solutions with confidence scores
+- **Full observability**: LangSmith tracing for every pipeline run
 
-## 🏗️ Project Architecture (6-Person Team)
+## 🏗️ Architecture
 
-To prevent merge conflicts, the project is split into independent submodules:
+```
+User Upload → Extractor (LLM+Vision OCR) → JSON [{id, content}]
+    → Cache Check (Redis)
+    → Difficulty Classifier (LLM)
+    ├── Easy Branch: LLM Direct Solve (+ Web Search if low confidence)
+    └── Hard Branch: Wolfram Alpha → Python Sandbox (3 retries) → Web Search
+    → Aggregator (LLM reasoning + LaTeX format)
+    → Cache Store → Response
+```
 
-| Person | Focus Area | Module | Key Responsibility |
-|--------|------------|--------|--------------------|
-| **1** | **Input/OCR** | `src/input/` | Image → Tesseract → Structured JSON queries. |
-| **2** | **Tier 1 Tool** | `src/tools/wolfram_tool.py` | Symbolic math via Wolfram Alpha API. |
-| **3** | **Tier 2 Tool** | `src/tools/python_tool.py` | Sandboxed Python with **3-attempt self-correction**. |
-| **4** | **Tier 3 Tool** | `src/tools/search_tool.py` | Procedure lookup via Tavily Web Search. |
-| **5** | **Agent/API** | `src/agent/` & `src/api/` | ReAct Engine logic & FastAPI SSE Streaming. |
-| **6** | **Frontend** | `frontend/` | Real-time "Thought Visualization" UI (React/SSE). |
+## 🛠️ Tech Stack
 
----
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI + Python 3.11 |
+| Frontend | React + TypeScript + Vite |
+| Agent | LangChain + LangGraph |
+| Tracing | LangSmith |
+| LLM | Groq API (free models) |
+| Math | Wolfram Alpha API |
+| Search | Tavily Search API |
+| Cache | Redis |
+| Database | SQLite (aiosqlite) |
 
-## 🛠️ Tiered Workflow
+## 👥 Team (6 People)
 
-The agent follows a strict reliability hierarchy:
-1.  **Tier 1: Wolfram Alpha** — First choice for exact symbolic results and verification.
-2.  **Tier 2: Python Code** — Fallback for algorithmic steps. If code fails, the agent gets the error and **retries up to 3 times**.
-3.  **Tier 3: Web Search** — Final fallback for lookups (e.g., "formula for volume of a sphere").
-
----
+| Person | Module | Key Files |
+|--------|--------|-----------|
+| **1** | Input & OCR | `app/agent/nodes/extractor.py`, `app/utils/image.py` |
+| **2** | Tools | `app/tools/wolfram.py`, `app/tools/python_executor.py`, `app/tools/web_search.py` |
+| **3** | Agent Graph | `app/agent/graph.py`, `app/agent/nodes/classifier.py`, `easy_solver.py`, `hard_solver.py` |
+| **4** | Cache & DB | `app/cache/`, `app/db/`, `app/agent/nodes/cache_node.py` |
+| **5** | API & Infra | `app/api/`, `app/main.py`, `app/config.py`, `docker-compose.yml` |
+| **6** | Frontend | `frontend/src/` |
 
 ## 🚀 Quick Start
 
-### 1. Requirements
-- Python 3.10+
-- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) binary installed on your system.
+### Prerequisites
+- Python 3.11+
+- Node.js 20+
+- Redis (optional, app works without it)
 
-### 2. Setup
+### 1. Setup Backend
 ```bash
-cp .env.example .env          # Add OpenAI, Wolfram, and Tavily API keys
+cp .env.example .env        # Fill in API keys
+cd backend
 pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. Run the Backend
+### 2. Setup Frontend
 ```bash
-uvicorn src.api.main:app --reload --port 8000
+cd frontend
+npm install
+npm run dev
 ```
-- **API Docs**: `http://localhost:8000/docs`
-- **Stream Live**: `http://localhost:8000/solve/stream?query=solve x^2 + 5x + 6 = 0`
 
-### 4. Tests
+### 3. Docker (all-in-one)
 ```bash
-python3 -m pytest tests/ -v    # 37/37 tests passing (offline)
+docker-compose up -d
+# Backend: http://localhost:8000
+# Frontend: http://localhost:5173
+# API Docs: http://localhost:8000/docs
 ```
 
----
+## 📡 API
 
-## 📁 Project Structure
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/solve` | Solve from text (JSON body) |
+| `POST` | `/api/v1/upload` | Solve from text + image (multipart) |
+| `GET` | `/api/v1/solve/{id}` | Get session results |
+| `GET` | `/api/v1/history` | List past sessions |
+| `GET` | `/api/v1/health` | Health check |
+| `WS` | `/api/v1/ws/{id}` | Real-time solve progress |
+
+## 🧪 Testing
+```bash
+cd backend && python -m pytest tests/ -v
+cd frontend && npm run test
 ```
-day_03_chatbot_vs_agent/
-├── src/
-│   ├── api/            # FastAPI server & SSE endpoints
-│   ├── agent/          # ReAct Logic (react_engine.py)
-│   ├── input/          # OCR & Image Processing (ocr_engine.py)
-│   ├── tools/          # Wolfram, Python (sandbox), and Search modules
-│   ├── core/           # LLM Providers
-│   └── telemetry/      # JSON Logging & Performance Metrics
-├── frontend/           # index.html (SSE streaming prototype)
-├── tests/              # 37 Unit tests for tools & engine
-├── FLOWCHART.md        # Reasoning logic & tiered escalation
-└── requirements.txt    # Modern dependencies (FastAPI, Tavily, etc.)
-```
-
----
-
-## ⚙️ Requirements for Grading
-- **Manual Edits**: Team must tune the `system_prompt` in `src/agent/react_engine.py` and tool descriptions in `src/tools/`.
-- **Comparison**: Use `compare.py` to run 5 identical cases against the plain `chatbot.py` baseline.
-- **Reporting**: Individual and Group reports are located in the `report/` directory.
-
----
-
-## 🔗 Repository
-**GitHub**: [https://github.com/bang274/modular-math-agent](https://github.com/bang274/modular-math-agent)

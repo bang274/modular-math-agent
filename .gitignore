@@ -1,13 +1,47 @@
-.env
+# Python
 __pycache__/
-*.pyc
-logs/
-.pytest_cache/
-.DS_Store
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
 venv/
 env/
-build/
-dist/
-*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+data/*.db
+data/*.sqlite
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Testing
 .coverage
 htmlcov/
+.pytest_cache/
+
+# LangSmith
+.langsmith/
+
+# Logs
+logs/
+*.log
