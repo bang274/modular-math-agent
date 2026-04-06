@@ -46,7 +46,7 @@ async def guard_node(state: AgentState) -> Dict[str, Any]:
         intent = result.get("intent", "unknown")
         guard_response = result.get("response", "")
         
-        is_guarded = intent in ["greeting", "rejected"]
+        is_guarded = intent in ["greeting", "rejected", "out_of_scope"]
         
         logger.info(f"[Guard] Intent: {intent} | Guarded: {is_guarded}")
         

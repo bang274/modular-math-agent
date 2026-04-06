@@ -146,7 +146,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 "steps": [],
                 "final_answer": "",
                 "confidence": 0.0,
-                "error": "No result produced",
+                "error": "Rất tiếc, tôi gặp khó khăn khi xử lý bài toán này (không có kết quả từ công cụ).",
                 "tool_trace": {
                     "route": "failed",
                     "tools_used": [],
@@ -266,7 +266,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 "steps": [],
                 "final_answer": result.get("final_answer", ""),
                 "confidence": result.get("confidence", 0.0),
-                "error": str(e),
+                "error": "Rất tiếc, đã có lỗi kết xuất kết quả từ hệ thống.",
                 "tool_trace": {
                     "route": result.get("solve_route", "unknown"),
                     "tools_used": result.get("tools_used", []),

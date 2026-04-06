@@ -64,11 +64,20 @@ export const ChatMessage: React.FC<Props> = ({ message }) => {
 
         {!isUser && (message.status === 'success') && message.results && message.results.length > 0 && (
           <div className="chat-message__results">
-            {message.results.map((result) => (
-              <ErrorBoundary key={result.problem_id}>
-                <SolutionCard result={result} />
-              </ErrorBoundary>
-            ))}
+            {message.results.map((result) => {
+              if (result.tool_trace?.route === 'guardrail') {
+                return (
+                  <div key={result.problem_id} className="chat-message__text chat-message__text--guardrail">
+                    {result.final_answer}
+                  </div>
+                );
+              }
+              return (
+                <ErrorBoundary key={result.problem_id}>
+                  <SolutionCard result={result} />
+                </ErrorBoundary>
+              );
+            })}
           </div>
         )}
 

@@ -14,6 +14,19 @@ interface Props {
 export const SolutionCard: React.FC<Props> = ({ result }) => {
   const [expanded, setExpanded] = useState(true);
 
+  // Helper to render text containing inline math bounded by $
+  const renderMixedText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\$+[^$]+\$+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        const cleanMath = part.replace(/\$/g, '');
+        return <LaTeXRenderer key={index} latex={cleanMath} displayMode={false} />;
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   const routeLabel: Record<string, string> = {
     llm_direct: '🧠 LLM Direct',
     wolfram: '🔬 Wolfram Alpha',
@@ -65,7 +78,7 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
                 <div key={step.step} className="solution-step">
                   <span className="step-number">{step.step}</span>
                   <div className="step-content">
-                    <p className="step-desc">{step.description}</p>
+                    <p className="step-desc">{renderMixedText(step.description)}</p>
                     {step.latex && <LaTeXRenderer latex={step.latex} displayMode />}
                   </div>
                 </div>
@@ -77,9 +90,9 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
             <div className="solution-card__answer">
               <span className="label">Đáp án:</span>
               <div className="answer-box">
-                {result.final_answer.includes('\\') || result.final_answer.includes('^') || result.final_answer.includes('_')
+                {result.final_answer.includes('\\') || result.final_answer.includes('^') || result.final_answer.includes('_') || result.final_answer.includes('$')
                   ? <LaTeXRenderer latex={result.final_answer} displayMode />
-                  : <span className="answer-text">{result.final_answer}</span>
+                  : <span className="answer-text">{renderMixedText(result.final_answer)}</span>
                 }
               </div>
             </div>

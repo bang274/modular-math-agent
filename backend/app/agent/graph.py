@@ -66,7 +66,7 @@ def build_agent_graph() -> StateGraph:
                 {
                     "problem_id": 0,
                     "original": state.get("raw_text", ""),
-                    "difficulty": "none",
+                    "difficulty": "unknown",
                     "final_answer": guard_response,
                     "steps": [{"step": 1, "description": guard_response, "latex": ""}],
                     "confidence": 1.0,

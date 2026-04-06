@@ -10,6 +10,7 @@ export type SolveRoute =
   | 'wolfram'
   | 'python_sandbox'
   | 'fallback_search'
+  | 'guardrail'
   | 'cached';
 
 export type SessionStatus =
