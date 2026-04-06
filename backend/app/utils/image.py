@@ -2,7 +2,7 @@
 Image preprocessing utilities.
 
 Person 1 owns this file.
-Handles: validation, resizing, base64 encoding for LLM vision.
+Handles: validation, resizing, base64 encoding for LLM vision, OCR API calls.
 """
 
 import base64
@@ -79,3 +79,55 @@ async def preprocess_image(
 
     except Exception as e:
         return "", f"Image processing error: {str(e)}"
+
+
+def get_image_mime_type(content_type: Optional[str]) -> str:
+    """Normalize MIME type string. Defaults to image/jpeg."""
+    if not content_type:
+        return "image/jpeg"
+    return content_type.lower()
+
+
+async def call_ocr_api(image_b64: str, mime_type: str = "image/jpeg") -> Tuple[str, Optional[str]]:
+    """Call an external OCR API to extract text from a math image.
+
+    Args:
+        image_b64: Base64-encoded image string (output of preprocess_image).
+        mime_type:  MIME type of the image (e.g. 'image/jpeg').
+
+    Returns:
+        Tuple of (extracted_text, error_message).
+        error_message is None on success.
+
+    TODO: Replace the stub body below with the real OCR API call.
+          Recommended options:
+            - Mathpix  (best for math/LaTeX): https://mathpix.com/docs/api
+            - Google Cloud Vision: https://cloud.google.com/vision/docs
+            - Azure Computer Vision: https://learn.microsoft.com/azure/ai-services/computer-vision
+    """
+    # ── Stub: replace with real API call ──────────────────────
+    # Example skeleton for Mathpix (uncomment + fill in when ready):
+    #
+    # import httpx
+    # from app.config import get_settings
+    # settings = get_settings()
+    #
+    # headers = {
+    #     "app_id":  settings.ocr_app_id,
+    #     "app_key": settings.ocr_api_key,
+    #     "Content-Type": "application/json",
+    # }
+    # payload = {
+    #     "src": f"data:{mime_type};base64,{image_b64}",
+    #     "formats": ["text", "latex_simplified"],
+    # }
+    # async with httpx.AsyncClient(timeout=settings.ocr_timeout_seconds) as client:
+    #     resp = await client.post(settings.ocr_api_url, json=payload, headers=headers)
+    #     resp.raise_for_status()
+    #     data = resp.json()
+    #     text = data.get("latex_simplified") or data.get("text", "")
+    #     return text, None
+    # ─────────────────────────────────────────────────────────
+
+    logger.warning("[OCR] call_ocr_api() is not yet implemented — returning placeholder.")
+    return "", "OCR API not configured yet. Please implement call_ocr_api() in app/utils/image.py."
