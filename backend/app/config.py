@@ -36,9 +36,14 @@ class Settings(BaseSettings):
 
     # ── LLM (Groq) ──────────────────────────────────────────
     groq_api_key: str = ""
-    llm_model_reasoning: str = "PLACEHOLDER_REASONING_MODEL_ID"
-    llm_model_extraction: str = "PLACEHOLDER_EXTRACTION_MODEL_ID"
-    llm_model_classifier: str = "PLACEHOLDER_CLASSIFIER_MODEL_ID"
+    llm_model_extractor: str = ""
+    llm_model_planner: str = ""
+    llm_model_coder: str = ""
+    llm_model_fixer: str = ""
+    llm_model_aggregator: str = ""
+
+
+
 
     # ── Wolfram Alpha ────────────────────────────────────────
     wolfram_alpha_app_id: str = ""

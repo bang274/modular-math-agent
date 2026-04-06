@@ -1,13 +1,12 @@
-"""
-Agent State — LangGraph TypedDict defining all state fields.
-
-Person 3 owns this file.
-This is the shared state passed between all LangGraph nodes.
-"""
-
-from typing import Any, Dict, List, Optional, TypedDict
+import operator
+from typing import Annotated, Any, Dict, List, Optional, TypedDict
 
 from app.models.common import Difficulty, SessionStatus
+
+
+def merge_dicts(a: Dict[Any, Any], b: Dict[Any, Any]) -> Dict[Any, Any]:
+    """Reducer for merging dictionaries in parallel branches."""
+    return {**a, **b}
 
 
 class ProblemState(TypedDict, total=False):
@@ -40,7 +39,7 @@ class ProblemState(TypedDict, total=False):
 class AgentState(TypedDict, total=False):
     """Global state for the entire LangGraph pipeline.
 
-    Every node reads from and writes to this state.
+    Equipped with reducers to support parallel node execution.
     """
     # ── Session ──────────────────────────────────────────────
     session_id: str
@@ -61,7 +60,7 @@ class AgentState(TypedDict, total=False):
 
     # ── Solving ──────────────────────────────────────────────
     current_problem_id: Optional[int] # Which problem is being solved
-    results: Dict[int, Dict[str, Any]]  # problem_id → solution result
+    results: Annotated[Dict[int, Dict[str, Any]], merge_dicts]
 
     # ── Aggregation ──────────────────────────────────────────
     final_results: List[Dict[str, Any]]
@@ -72,7 +71,8 @@ class AgentState(TypedDict, total=False):
     cached_count: int
 
     # ── WebSocket streaming ──────────────────────────────────
-    ws_messages: List[Dict[str, Any]]   # Messages to send to client
+    ws_messages: Annotated[List[Dict[str, Any]], operator.add]
 
     # ── Errors ───────────────────────────────────────────────
-    errors: List[str]
+    errors: Annotated[List[str], operator.add]
+

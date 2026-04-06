@@ -89,34 +89,21 @@ def build_agent_graph() -> StateGraph:
     )
 
     # After classifier → route to appropriate solver(s)
+    # If route_after_classifier returns a list, LangGraph runs them in parallel.
     graph.add_conditional_edges(
         "classifier",
         route_after_classifier,
         {
             "easy_solver": "easy_solver",
             "hard_solver": "hard_solver",
-            "both_solvers": "easy_solver",  # Easy runs first, then hard
-        },
-    )
-
-    # Easy solver → hard solver (if there are hard problems) or aggregator
-    def after_easy(state: AgentState):
-        hard_ids = state.get("hard_problems", [])
-        if hard_ids:
-            return "hard_solver"
-        return "aggregator"
-
-    graph.add_conditional_edges(
-        "easy_solver",
-        after_easy,
-        {
-            "hard_solver": "hard_solver",
             "aggregator": "aggregator",
         },
     )
 
-    # Hard solver → aggregator
+    # Parallel solvers → aggregator (Fan-in)
+    graph.add_edge("easy_solver", "aggregator")
     graph.add_edge("hard_solver", "aggregator")
+
 
     # Aggregator → cache store
     graph.add_edge("aggregator", "cache_store")
