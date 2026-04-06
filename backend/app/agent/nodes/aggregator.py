@@ -95,21 +95,53 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
 
     llm = get_aggregator_llm()
 
-    # ── Handle Case: No math found/Extraction Error ────────────────
-    if not problems and state.get("extraction_error"):
-        logger.info("[Aggregator] Returning friendly 'No Math Found' response.")
-        return {
-            "status": "success",
-            "final_results": [],
-            "aggregator_error": None,
-            "ws_messages": ws_messages + [{
-                "type": "final_answer",
-                "data": {
-                    "text": state["extraction_error"],
-                    "results": []
-                }
-            }]
-        }
+    # ── Handle Case: No new problems (Follow-up or Clarification) ──
+    if not problems:
+        logger.info("[Aggregator] No new problems, treating as follow-up/clarification.")
+        
+        # Build prompt for pedagogical follow-up
+        history = state.get("chat_history", [])[-8:] # Keep last 4 turns
+        history_str = json.dumps(history, indent=2, ensure_ascii=False) if history else "None"
+        
+        followup_prompt = (
+            f"USER FOLLOW-UP QUERY: {state.get('raw_text', '')}\n\n"
+            f"CHAT HISTORY FOR CONTEXT:\n{history_str}\n\n"
+            "INSTRUCTION: The user is asking a meta-question or seeking clarification about the previous math discussion. "
+            "Use the AGGREGATOR_SYSTEM_PROMPT rules to provide a helpful, pedagogical response in Vietnamese. "
+            "Explain clearly based on the context above."
+        )
+
+        try:
+            response = await llm.ainvoke([
+                SystemMessage(content=AGGREGATOR_SYSTEM_PROMPT),
+                HumanMessage(content=f"Please answer this follow-up based on our history:\n{followup_prompt}")
+            ])
+            parsed = parse_json_response(response.content)
+            
+            if parsed:
+                final_results.append({
+                    "problem_id": 0,
+                    "original": state.get("raw_text", ""),
+                    "difficulty": "unknown",
+                    "steps": parsed.get("steps", []),
+                    "final_answer": parsed.get("final_answer", ""),
+                    "confidence": 1.0,
+                    "tool_trace": {"route": "clarification", "solve_reason": "Follow-up/Clarification based on history"}
+                })
+        except Exception as e:
+            logger.error(f"[Aggregator] Failed to process follow-up: {e}")
+            # Fallback to extraction error if any
+            err_msg = state.get("extraction_error") or "Tôi chưa hiểu ý bạn, bạn có thể giải thích rõ hơn không?"
+            final_results.append({
+                "problem_id": 0,
+                "original": state.get("raw_text", ""),
+                "difficulty": "unknown",
+                "steps": [{"step": 1, "description": err_msg, "latex": ""}],
+                "final_answer": err_msg,
+                "confidence": 0.0,
+                "error": "follow_up_failed"
+            })
+
 
     final_results: List[Dict[str, Any]] = []
     total_latency = 0
@@ -248,6 +280,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                 "error": result.get("error"),
                 "tool_trace": {
                     "route": result.get("solve_route", "unknown"),
+                    "solve_reason": result.get("solve_reason", ""),
                     "tools_used": result.get("tools_used", []),
                     "attempts": len(result.get("errors", [])) + 1,
                     "cache_hit": False,
@@ -255,6 +288,7 @@ async def aggregator_node(state: AgentState) -> Dict[str, Any]:
                     "errors": result.get("errors", []),
                 },
             })
+
 
 
         except Exception as e:

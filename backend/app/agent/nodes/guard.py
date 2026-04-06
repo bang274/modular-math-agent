@@ -35,15 +35,31 @@ async def guard_node(state: AgentState) -> Dict[str, Any]:
     
     llm = get_extractor_llm()  # Use the fast extractor model for guarding
     
+    # Prepare messages including history for context-aware guarding
+    messages = [SystemMessage(content=GUARDRAIL_SYSTEM_PROMPT)]
+    
+    # Add last 3 turns of history (up to 6 messages) for context
+    for msg in state.get("chat_history", [])[-6:]:
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
+        else:
+            messages.append(SystemMessage(content=f"Assistant: {msg['content']}"))
+
+    messages.append(HumanMessage(content=f"User Query: {raw_text}"))
+
     try:
-        response = await llm.ainvoke([
-            SystemMessage(content=GUARDRAIL_SYSTEM_PROMPT),
-            HumanMessage(content=f"User Query: {raw_text}")
-        ])
+        response = await llm.ainvoke(messages)
+
         
         # Parse JSON output
-        result = json.loads(response.content)
-        intent = result.get("intent", "unknown")
+        from app.llm.parser import parse_json_response
+        result = parse_json_response(response.content)
+        
+        if not result:
+            logger.warning(f"[Guard] Failed to parse JSON: {response.content}")
+            return {"is_guarded": False, "intent": "math"}
+
+        intent = str(result.get("intent", "math")).lower()
         guard_response = result.get("response", "")
         
         is_guarded = intent in ["greeting", "rejected"]

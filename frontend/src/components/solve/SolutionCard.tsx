@@ -11,6 +11,14 @@ interface Props {
   result: ProblemResult;
 }
 
+// Helper to decide if a string should be rendered with LaTeX
+const isLikelyMath = (text: string): boolean => {
+  if (!text) return false;
+  // Look for common LaTeX indicators or mathematical notation
+  const mathIndicators = ['\\', '^', '_', '{', '}', '$', '=', '<', '>', '+', '-', '*', '/'];
+  return mathIndicators.some(indicator => text.includes(indicator));
+};
+
 export const SolutionCard: React.FC<Props> = ({ result }) => {
   const [expanded, setExpanded] = useState(true);
 
@@ -22,6 +30,7 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
     fallback_search: '🔍 Fallback Search',
     cached: '⚡ Cached',
     failed: '❌ Failed',
+    clarification: '👩‍🏫 Clarification',
   };
 
   const confidenceColor = result.confidence >= 0.8 ? '#34d399' :
@@ -49,13 +58,17 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
       {expanded && (
         <div className="solution-card__body">
           <div className="solution-card__problem">
-            <span className="label">Đề bài:</span>
-            <LaTeXRenderer latex={result.original} displayMode />
+            <span className="label">ĐỀ BÀI:</span>
+            {isLikelyMath(result.original) ? (
+              <LaTeXRenderer latex={result.original} displayMode />
+            ) : (
+              <div className="problem-text">{result.original}</div>
+            )}
           </div>
 
           {result.steps.length > 0 && (
             <div className="solution-card__steps">
-              <span className="label">Lời giải:</span>
+              <span className="label">LỜI GIẢI:</span>
               {result.steps.map((step) => (
                 <div key={step.step} className="solution-step">
                   <span className="step-number">{step.step}</span>
@@ -70,12 +83,13 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
 
           {result.final_answer && (
             <div className="solution-card__answer">
-              <span className="label">Đáp án:</span>
+              <span className="label">ĐÁP ÁN:</span>
               <div className="answer-box">
-                {result.final_answer.includes('\\') || result.final_answer.includes('^') || result.final_answer.includes('_')
-                  ? <LaTeXRenderer latex={result.final_answer} displayMode />
-                  : <span className="answer-text">{result.final_answer}</span>
-                }
+                {isLikelyMath(result.final_answer) ? (
+                  <LaTeXRenderer latex={result.final_answer} displayMode />
+                ) : (
+                  <span className="answer-text">{result.final_answer}</span>
+                )}
               </div>
             </div>
           )}

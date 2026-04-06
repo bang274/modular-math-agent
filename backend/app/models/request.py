@@ -16,6 +16,11 @@ class SolveRequest(BaseModel):
         min_length=1,
         max_length=10000,
     )
+    session_id: Optional[str] = Field(
+        None,
+        description="Optional session ID for persistent memory",
+    )
+
 
 
 class SolveTextRequest(BaseModel):
