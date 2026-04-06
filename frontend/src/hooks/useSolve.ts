@@ -19,6 +19,8 @@ export function useSolve() {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
       throw err;
+    } finally {
+      setLoading(false);
     }
   }, [reset, setLoading, setResponse, setError]);
 
@@ -33,6 +35,8 @@ export function useSolve() {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
       throw err;
+    } finally {
+      setLoading(false);
     }
   }, [reset, setLoading, setResponse, setError]);
 

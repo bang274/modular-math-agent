@@ -21,8 +21,13 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
     web_search: '🔍 Web Search',
     fallback_search: '🔍 Fallback Search',
     cached: '⚡ Cached',
+    unknown: '❓ Unknown',
     failed: '❌ Failed',
   };
+
+  const route = result.tool_trace?.route || 'unknown';
+  const cacheHit = result.tool_trace?.cache_hit || false;
+  const latency = result.tool_trace?.latency_ms || 0;
 
   const confidenceColor = result.confidence >= 0.8 ? '#34d399' :
     result.confidence >= 0.5 ? '#fbbf24' : '#f87171';
@@ -32,15 +37,15 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
       <div className="solution-card__header" onClick={() => setExpanded(!expanded)}>
         <div className="solution-card__title">
           <span className="solution-card__id">Bài {result.problem_id}</span>
-          <StatusBadge status={result.difficulty} />
-          {result.tool_trace.cache_hit && <StatusBadge status="cached" />}
+          <StatusBadge status={result.difficulty || 'unknown'} />
+          {cacheHit && <StatusBadge status="cached" />}
         </div>
         <div className="solution-card__meta">
           <span className="solution-card__route">
-            {routeLabel[result.tool_trace.route] || result.tool_trace.route}
+            {routeLabel[route] || route}
           </span>
           <span className="solution-card__latency">
-            {result.tool_trace.latency_ms}ms
+            {latency}ms
           </span>
           <span className="solution-card__expand">{expanded ? '▾' : '▸'}</span>
         </div>
@@ -97,7 +102,7 @@ export const SolutionCard: React.FC<Props> = ({ result }) => {
               </span>
             </div>
 
-            {result.tool_trace.tools_used.length > 0 && (
+            {result.tool_trace?.tools_used && result.tool_trace.tools_used.length > 0 && (
               <div className="tools-used">
                 {result.tool_trace.tools_used.map((tool) => (
                   <span key={tool} className="tool-tag">{tool}</span>

@@ -8,7 +8,12 @@
 .chat-window__messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  scrollbar-gutter: stable;
+  scroll-behavior: auto;
 }
 
 .chat-window__empty {

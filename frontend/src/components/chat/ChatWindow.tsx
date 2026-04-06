@@ -13,12 +13,15 @@ export const ChatWindow: React.FC = () => {
   const setLoading = useChatStore((s) => s.setLoading);
   const setError = useChatStore((s) => s.setError);
   const { solveFromText } = useSolve();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeId);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [activeConv?.messages.length]);
 
   const handleSuggestion = async (text: string) => {
@@ -44,11 +47,10 @@ export const ChatWindow: React.FC = () => {
   return (
     <div className="chat-window">
       {activeConv && activeConv.messages.length > 0 ? (
-        <div className="chat-window__messages">
+        <div className="chat-window__messages" ref={messagesContainerRef}>
           {activeConv.messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
-          <div ref={messagesEndRef} />
         </div>
       ) : (
         <div className="chat-window__empty">

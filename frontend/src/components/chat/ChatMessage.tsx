@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ChatMessage as ChatMessageType } from '../../types/api';
 import { SolutionCard } from '../solve/SolutionCard';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import './ChatMessage.css';
 
 interface Props {
@@ -57,7 +58,9 @@ export const ChatMessage: React.FC<Props> = ({ message }) => {
         {!isUser && (message.status === 'success') && message.results && message.results.length > 0 && (
           <div className="chat-message__results">
             {message.results.map((result) => (
-              <SolutionCard key={result.problem_id} result={result} />
+              <ErrorBoundary key={result.problem_id}>
+                <SolutionCard result={result} />
+              </ErrorBoundary>
             ))}
           </div>
         )}

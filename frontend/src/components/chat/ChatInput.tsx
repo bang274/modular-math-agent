@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSolve } from '../../hooks/useSolve';
 import { useChatStore } from '../../store/chatStore';
@@ -15,6 +15,12 @@ export const ChatInput: React.FC = () => {
   const setError = useChatStore((s) => s.setError);
   const updateMessage = useChatStore((s) => s.updateMessage);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isLoading]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.slice(0, 3 - images.length).map((f) => ({

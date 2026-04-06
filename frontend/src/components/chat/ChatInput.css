@@ -2,6 +2,7 @@
   padding: 1rem 1.5rem;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .chat-input__images {
@@ -89,8 +90,10 @@
   font-size: 0.95rem;
   line-height: 1.5;
   resize: none;
+  min-height: 24px;
   max-height: 120px;
   padding: 0.5rem 0;
+  overflow-y: auto;
 }
 
 .chat-input__textarea::placeholder {

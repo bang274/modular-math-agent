@@ -6,9 +6,9 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass 12345aA@
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "12345aA@", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -43,7 +43,6 @@ services:
       - backend
     volumes:
       - ./frontend/src:/app/src
-    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   redis_data:
